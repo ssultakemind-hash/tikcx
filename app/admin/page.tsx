@@ -106,7 +106,10 @@ function WeddingRow({ w, adminKey, expanded, onToggle }: { w: W; adminKey: strin
               </div>
               <p className="muted">신랑·신부 전용 링크 (이 링크만 있으면 앨범을 볼 수 있으니 커플에게만 보내세요)</p>
               <div className="url">{coupleUrl}</div>
-              <div className="row"><button className="btn ghost small" type="button" onClick={() => copy(coupleUrl)}>링크 복사</button></div>
+              <div className="row">
+                <a className="btn small" href={coupleUrl} target="_blank" rel="noopener">앨범 보기</a>
+                <button className="btn ghost small" type="button" onClick={() => copy(coupleUrl)}>링크 복사</button>
+              </div>
             </div>
           </div>
           <Uploader slug={w.slug} adminKey={adminKey} />
