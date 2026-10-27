@@ -66,7 +66,7 @@ export default function Uploader({ slug, adminKey }: { slug: string; adminKey?: 
       ) : (
         <label className="pick">
           <input id="files" type="file" accept="image/*,video/*" multiple onChange={onPick} />
-          <span className="btn" role="button">{adminKey ? "작가 원본 올리기" : "사진·영상 선택해서 올리기"}</span>
+          <span className="btn" role="button">{adminKey ? "작가 원본 올리기" : "사진 올리기"}</span>
         </label>
       )}
       {error && <p className="err">{error}</p>}
