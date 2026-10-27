@@ -9,7 +9,7 @@ function withDownload(url: string) {
   return url + (url.includes("?") ? "&" : "?") + "download=";
 }
 
-export default function Gallery({ slug, k }: { slug: string; k: string }) {
+export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: string; fromAdmin?: boolean }) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -53,7 +53,10 @@ export default function Gallery({ slug, k }: { slug: string; k: string }) {
 
   return (
     <main className="wrap">
-      <div className="brand">tikcx<small>소중한 순간들을 한곳에</small></div>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="brand">tikcx<small>소중한 순간들을 한곳에</small></div>
+        {fromAdmin && <a className="btn ghost small" href="/admin">← 관리자</a>}
+      </div>
       <section className="card">
         <div>
           <div className="eyebrow">{data.wedding.couple_names} · 신랑·신부 전용</div>

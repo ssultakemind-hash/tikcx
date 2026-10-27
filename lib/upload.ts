@@ -40,7 +40,16 @@ function put(url: string, body: Blob, type: string, onProgress?: (p: number) => 
   });
 }
 
-export type UploadResult = { ok: number; failed: number; photos: number; videos: number };
+export type UploadResult = { ok: number; failed: number; photos: number; videos: number; ids: string[] };
+
+// Remembers, on this phone only, which files this guest uploaded.
+const mineKey = (slug: string) => `tikcx_mine_${slug}`;
+export function getMine(slug: string): string[] {
+  try { return JSON.parse(localStorage.getItem(mineKey(slug)) || "[]"); } catch { return []; }
+}
+export function addMine(slug: string, ids: string[]) {
+  try { localStorage.setItem(mineKey(slug), JSON.stringify([...ids, ...getMine(slug)].slice(0, 500))); } catch {}
+}
 
 // Uploads files one by one and reports overall progress (0..1).
 export async function uploadFiles(
@@ -67,5 +76,6 @@ export async function uploadFiles(
     onProgress(i + 1, files.length, 1);
   }
   if (okIds.length) await fetch("/api/confirm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, ids: okIds }) });
-  return { ok: okIds.length, failed, photos, videos };
+  if (!adminKey) addMine(slug, okIds);
+  return { ok: okIds.length, failed, photos, videos, ids: okIds };
 }

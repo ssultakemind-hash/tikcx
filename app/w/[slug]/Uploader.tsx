@@ -5,7 +5,7 @@ import { uploadFiles, type UploadResult } from "@/lib/upload";
 const MAX = 50;
 const MAX_BYTES = 50 * 1024 * 1024;
 
-export default function Uploader({ slug, adminKey }: { slug: string; adminKey?: string }) {
+export default function Uploader({ slug, adminKey, onDone }: { slug: string; adminKey?: string; onDone?: () => void }) {
   const [name, setName] = useState("");
   const [state, setState] = useState<"idle" | "busy" | "done">("idle");
   const [progress, setProgress] = useState({ done: 0, total: 0, frac: 0 });
@@ -23,7 +23,7 @@ export default function Uploader({ slug, adminKey }: { slug: string; adminKey?: 
     setError(""); setState("busy"); setProgress({ done: 0, total: ok.length, frac: 0 });
     try {
       const r = await uploadFiles(slug, ok, name, (done, total, frac) => setProgress({ done, total, frac }), adminKey);
-      setResult(r); setState("done");
+      setResult(r); setState("done"); onDone?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "업로드에 실패했어요. 다시 시도해주세요.");
       setState("idle");
