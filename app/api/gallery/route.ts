@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   }
 
   return NextResponse.json({
-    wedding: { couple_names: wedding.couple_names, wedding_date: wedding.wedding_date, venue: wedding.venue },
+    wedding: { couple_names: wedding.couple_names, wedding_date: wedding.wedding_date, venue: wedding.venue, guest_gallery: wedding.guest_gallery },
     items: list.map((r) => ({
       id: r.id, kind: r.kind, from: r.uploader_name, pro: r.is_pro, at: r.created_at,
       url: signed.get(r.path) ?? null,

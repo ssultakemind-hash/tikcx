@@ -36,3 +36,6 @@ alter table public.media enable row level security;
 insert into storage.buckets (id, name, public, file_size_limit)
 values ('media', 'media', false, 52428800)
 on conflict (id) do nothing;
+
+-- 2026-10-29: couple can show/hide all photos to guests (default: shown)
+alter table public.weddings add column if not exists guest_gallery boolean not null default true;

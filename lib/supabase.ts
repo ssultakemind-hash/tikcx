@@ -19,12 +19,13 @@ export type Wedding = {
   wedding_date: string | null;
   venue: string | null;
   couple_key: string;
+  guest_gallery: boolean;
 };
 
 export async function weddingBySlug(slug: string) {
   const { data } = await admin()
     .from("weddings")
-    .select("id, slug, couple_names, wedding_date, venue, couple_key")
+    .select("id, slug, couple_names, wedding_date, venue, couple_key, guest_gallery")
     .eq("slug", slug)
     .maybeSingle();
   return (data as Wedding | null) ?? null;

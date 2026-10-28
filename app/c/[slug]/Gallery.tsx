@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Invite from "./Invite";
 
 type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null };
-type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null }; items: Item[] };
+type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; items: Item[] };
 type Filter = "all" | "guest" | "pro" | "video";
 
 function withDownload(url: string) {
@@ -39,6 +39,16 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
     };
   }, [data]);
 
+  const [saving, setSaving] = useState(false);
+  async function toggleShare() {
+    if (!data || saving) return;
+    const next = !data.wedding.guest_gallery;
+    setSaving(true);
+    const r = await fetch("/api/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k, guest_gallery: next }) });
+    if (r.ok) setData((d) => d && { ...d, wedding: { ...d.wedding, guest_gallery: next } });
+    setSaving(false);
+  }
+
   async function remove() {
     if (!cur) return;
     if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 3000); return; }
@@ -59,6 +69,16 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
         {fromAdmin && <a className="btn ghost small" href="/admin">← 관리자</a>}
       </div>
       <Invite slug={slug} names={data.wedding.couple_names} defaultOpen={data.items.length === 0} />
+      <section className="card setting">
+        <div style={{ minWidth: 0 }}>
+          <h2>하객에게 사진 공개</h2>
+          <p className="muted">{data.wedding.guest_gallery
+            ? "하객분들도 서로 올린 사진을 미리보기로 볼 수 있어요. 원본 저장과 삭제는 두 분만 가능해요."
+            : "지금은 두 분만 사진을 볼 수 있어요. 하객분들은 자기가 올린 사진만 볼 수 있어요."}</p>
+        </div>
+        <button type="button" role="switch" aria-checked={data.wedding.guest_gallery} aria-label="하객에게 사진 공개"
+          className="switch" onClick={toggleShare} disabled={saving}><i /></button>
+      </section>
       <section className="card">
         <div>
           <div className="eyebrow">{data.wedding.couple_names} · 신랑·신부 전용</div>
