@@ -2,6 +2,21 @@
 import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import Uploader from "../w/[slug]/Uploader";
+import { shortUrl, useCopy } from "@/lib/copy";
+
+function coupleMessage(names: string, url: string) {
+  return `[TAKEMIND] ${names}님, 결혼 진심으로 축하드려요.
+
+하객분들이 찍어주신 사진과 영상을 한곳에 모아드리는 tikcx 앨범을 준비했어요.
+
+▶ 두 분 전용 앨범
+${url}
+
+앨범 위쪽 '하객 초대하기'에서 모바일 청첩장에 넣을 링크와 QR을 받으실 수 있어요.
+예식 당일 테이블 QR 카드는 TAKEMIND가 준비해 드립니다.
+
+※ 위 링크는 두 분만 보관해 주세요. 하객분들께는 '하객 초대하기'의 링크를 보내주시면 돼요.`;
+}
 
 type W = { id: string; slug: string; couple_names: string; wedding_date: string | null; venue: string | null; couple_key: string; photos: number; videos: number; guests: number };
 
@@ -85,34 +100,45 @@ function WeddingRow({ w, adminKey, expanded, onToggle }: { w: W; adminKey: strin
     if (expanded) QRCode.toDataURL(guestUrl, { width: 1024, margin: 2, color: { dark: "#141615", light: "#ffffff" } }).then(setQr).catch(() => {});
   }, [expanded, guestUrl]);
 
-  const copy = (t: string) => navigator.clipboard?.writeText(t).catch(() => {});
+  const { copied, copy } = useCopy();
+  const kakao = coupleMessage(w.couple_names, coupleUrl);
 
   return (
     <div className="item">
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <div><b>{w.couple_names}</b><p className="muted">{[w.wedding_date, w.venue].filter(Boolean).join(" · ")} · 사진 {w.photos} · 영상 {w.videos} · 하객 {w.guests}명</p></div>
+      <div className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
+        <div style={{ minWidth: 0 }}>
+          <b>{w.couple_names}</b>
+          <p className="muted">{[w.wedding_date, w.venue].filter(Boolean).join(" · ")}</p>
+          <p className="muted">사진 {w.photos} · 영상 {w.videos} · 하객 {w.guests}명</p>
+        </div>
         <button className="btn ghost small" type="button" onClick={onToggle}>{expanded ? "접기" : "열기"}</button>
       </div>
       {expanded && (
         <>
-          <div className="row" style={{ alignItems: "flex-start" }}>
-            {qr && <img className="qr" src={qr} alt={`${w.couple_names} 업로드 QR`} />}
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minWidth: 0 }}>
-              <p className="muted">하객 업로드 주소 (QR)</p>
-              <div className="url">{guestUrl}</div>
-              <div className="row">
-                <button className="btn ghost small" type="button" onClick={() => copy(guestUrl)}>주소 복사</button>
-                {qr && <a className="btn ghost small" href={qr} download={`tikcx-${w.slug}-qr.png`}>QR 이미지 저장</a>}
-              </div>
-              <p className="muted">신랑·신부 전용 링크 (이 링크만 있으면 앨범을 볼 수 있으니 커플에게만 보내세요)</p>
-              <div className="url">{coupleUrl}</div>
-              <div className="row">
-                <a className="btn small" href={`${coupleUrl}&from=admin`}>앨범 보기</a>
-                <button className="btn ghost small" type="button" onClick={() => copy(coupleUrl)}>링크 복사</button>
-              </div>
+          <div className="panel">
+            <div className="panel-head"><span className="pill">신랑·신부</span><span className="muted">두 사람에게만 보내세요</span></div>
+            <button className="btn" type="button" onClick={() => copy(kakao, "kakao")}>
+              {copied === "kakao" ? "복사됐어요. 카톡에 붙여넣기 하세요" : "카톡 안내 문구 복사"}
+            </button>
+            <div className="row two">
+              <a className="btn ghost small" href={`${coupleUrl}&from=admin`}>앨범 보기</a>
+              <button className="btn ghost small" type="button" onClick={() => copy(coupleUrl, "couple")}>{copied === "couple" ? "복사됨" : "링크만 복사"}</button>
             </div>
           </div>
-          <Uploader slug={w.slug} adminKey={adminKey} />
+
+          <div className="panel">
+            <div className="panel-head"><span className="pill">하객</span><span className="muted">{shortUrl(guestUrl)}</span></div>
+            {qr && <img className="qr" src={qr} alt={`${w.couple_names} 하객 업로드 QR`} />}
+            <div className="row two">
+              {qr && <a className="btn ghost small" href={qr} download={`tikcx-${w.slug}-qr.png`}>QR 저장</a>}
+              <button className="btn ghost small" type="button" onClick={() => copy(guestUrl, "guest")}>{copied === "guest" ? "복사됨" : "링크 복사"}</button>
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panel-head"><span className="pill">TAKEMIND 원본</span></div>
+            <Uploader slug={w.slug} adminKey={adminKey} />
+          </div>
         </>
       )}
     </div>

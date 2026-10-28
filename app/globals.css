@@ -108,6 +108,14 @@ label.pick input{position:absolute;opacity:0;width:1px;height:1px}
 .item{background:var(--fill);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px}
 .item .btn.ghost{background:var(--surface)}
 .item .url{background:var(--surface)}
-.qr{background:#fff;border-radius:16px;padding:12px;width:168px;height:168px}
+.qr{background:#fff;border-radius:16px;padding:10px;width:180px;height:180px;max-width:100%;align-self:center;display:block}
+.qr.center{margin:0 auto}
+.panel{background:var(--surface);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel-head{display:flex;align-items:center;gap:8px;min-width:0}
+.panel-head .muted{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pill{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--fill);white-space:nowrap}
+.row.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row.two .btn{width:100%;display:block}
+.notice{font-size:13px;line-height:1.55;color:var(--muted);background:var(--fill);border-radius:12px;padding:12px 14px}
 
 @media (prefers-reduced-motion:reduce){.bar i,.btn,.tile img{transition:none}}

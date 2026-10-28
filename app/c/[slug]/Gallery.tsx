@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Invite from "./Invite";
 
 type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null };
 type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null }; items: Item[] };
@@ -57,6 +58,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
         <div className="brand">tikcx<small>소중한 순간들을 한곳에</small></div>
         {fromAdmin && <a className="btn ghost small" href="/admin">← 관리자</a>}
       </div>
+      <Invite slug={slug} names={data.wedding.couple_names} defaultOpen={data.items.length === 0} />
       <section className="card">
         <div>
           <div className="eyebrow">{data.wedding.couple_names} · 신랑·신부 전용</div>
