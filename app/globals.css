@@ -123,6 +123,11 @@ label.pick input{position:absolute;opacity:0;width:1px;height:1px}
 .switch[aria-checked="true"]{background:var(--ok)}
 .switch[aria-checked="true"] i{transform:translateX(20px)}
 .switch:disabled{opacity:.6}
+.card.warn{background:#fff4e5;color:#7a4a00;gap:6px;padding:20px}
+.card.warn h2{color:#7a4a00}
+@media (prefers-color-scheme: dark){.card.warn{background:#3a2a10;color:#ffd58a}.card.warn h2{color:#ffd58a}}
+.panel.save{background:var(--fill)}
+.ok{color:var(--ok);font-weight:600}
 .notice{font-size:13px;line-height:1.55;color:var(--muted);background:var(--fill);border-radius:12px;padding:12px 14px}
 
 @media (prefers-reduced-motion:reduce){.bar i,.btn,.tile img{transition:none}}

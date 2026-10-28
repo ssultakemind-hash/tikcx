@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { shortUrl, useCopy } from "@/lib/copy";
+import { daysBetween, kstToday, phase, shortDate, WARN_DAYS } from "@/lib/dates";
 
 function coupleMessage(names: string, url: string) {
   return `[TAKEMIND] ${names}님, 결혼 진심으로 축하드려요.
@@ -15,6 +16,94 @@ ${url}
 예식 당일 테이블 QR 카드는 TAKEMIND가 준비해 드립니다.
 
 ※ 위 링크는 두 분만 보관해 주세요. 하객분들께는 '하객 초대하기'의 링크를 보내주시면 돼요.`;
+}
+
+function dayAfterMessage(w: W, url: string) {
+  const p = phase(w.wedding_date);
+  return `[TAKEMIND] ${w.couple_names}님, 결혼을 다시 한번 축하드려요.
+
+하객분들이 사진 ${w.photos}장${w.videos ? `, 영상 ${w.videos}개` : ""}를 보내주셨어요.
+
+▶ 두 분 전용 앨범
+${url}
+
+하객 사진은 ${shortDate(p.uploadUntil)}까지 더 올라올 수 있어요.
+앨범은 ${shortDate(p.deleteOn)}까지 보관되니, 앨범의 '전체 저장'으로 꼭 저장해 두세요.`;
+}
+
+function deleteSoonMessage(w: W, url: string) {
+  const p = phase(w.wedding_date);
+  return `[TAKEMIND] ${w.couple_names}님, tikcx 앨범 보관 기간이 ${p.daysLeft}일 남았어요.
+
+${shortDate(p.deleteOn)}에 모든 사진과 영상이 삭제돼요.
+
+▶ 두 분 전용 앨범
+${url}
+
+앨범에서 '전체 저장'을 눌러 미리 저장해 주세요.`;
+}
+
+type Todo = { w: W; type: "dayafter" | "deletesoon"; label: string; text: string };
+
+function todosFor(list: W[], origin: string): Todo[] {
+  const today = kstToday();
+  const out: Todo[] = [];
+  for (const w of list) {
+    if (!w.wedding_date) continue;
+    const url = `${origin}/c/${w.slug}?k=${w.couple_key}`;
+    const p = phase(w.wedding_date, today);
+    const since = daysBetween(w.wedding_date, today);
+    if (since >= 1 && since <= 2) out.push({ w, type: "dayafter", label: "예식 다음날 · 사진 모임 안내", text: dayAfterMessage(w, url) });
+    if (p.daysLeft !== null && p.daysLeft > 0 && p.daysLeft <= WARN_DAYS && w.photos + w.videos > 0)
+      out.push({ w, type: "deletesoon", label: `삭제 ${p.daysLeft}일 전 · 저장 안내`, text: deleteSoonMessage(w, url) });
+  }
+  return out;
+}
+
+function TodayList({ list }: { list: W[] }) {
+  const { copied, copy } = useCopy();
+  const [sent, setSent] = useState<Record<string, boolean>>({});
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const todos = todosFor(list, origin);
+  const key = (t: Todo) => `tikcx_sent_${t.w.id}_${t.type}`;
+
+  useEffect(() => {
+    const s: Record<string, boolean> = {};
+    try { todos.forEach((t) => { if (localStorage.getItem(key(t))) s[key(t)] = true; }); } catch {}
+    setSent(s);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list]);
+
+  function markSent(t: Todo) {
+    try { localStorage.setItem(key(t), "1"); } catch {}
+    setSent((s) => ({ ...s, [key(t)]: true }));
+  }
+
+  const pending = todos.filter((t) => !sent[key(t)]);
+
+  return (
+    <section className="card">
+      <div>
+        <div className="eyebrow">오늘 할 일</div>
+        <h2>카톡 보낼 예식 {pending.length > 0 ? pending.length : ""}</h2>
+      </div>
+      {pending.length === 0 ? (
+        <p className="muted">오늘은 보낼 카톡이 없어요.</p>
+      ) : (
+        <div className="list">
+          {pending.map((t) => (
+            <div key={key(t)} className="item">
+              <div><b>{t.w.couple_names}</b><p className="muted">{t.label}</p></div>
+              <button className="btn" type="button" onClick={() => copy(t.text, key(t))}>
+                {copied === key(t) ? "복사됐어요. 카톡에 붙여넣기 하세요" : "카톡 문구 복사"}
+              </button>
+              <button className="btn ghost small" type="button" onClick={() => markSent(t)}>보냈어요</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 }
 
 type W = { id: string; slug: string; couple_names: string; wedding_date: string | null; venue: string | null; couple_key: string; photos: number; videos: number; guests: number };
@@ -64,6 +153,7 @@ export default function Admin() {
   return (
     <main className="wrap wide">
       <div className="brand">tikcx<small>스튜디오 관리자</small></div>
+      <TodayList list={list} />
       <form className="card" onSubmit={create}>
         <h2>새 예식 만들기</h2>
         <div className="field"><label htmlFor="f-names">신랑·신부 이름</label>
@@ -109,6 +199,10 @@ function WeddingRow({ w, adminKey, expanded, onToggle }: { w: W; adminKey: strin
           <b>{w.couple_names}</b>
           <p className="muted">{[w.wedding_date, w.venue].filter(Boolean).join(" · ")}</p>
           <p className="muted">사진 {w.photos} · 영상 {w.videos} · 하객 {w.guests}명</p>
+          {w.wedding_date && (() => {
+            const p = phase(w.wedding_date);
+            return <p className="muted">{p.expired ? "보관 종료" : `업로드 ${shortDate(p.uploadUntil)}까지${p.uploadOpen ? "" : " (마감)"} · 삭제 ${shortDate(p.deleteOn)}`}</p>;
+          })()}
         </div>
         <button className="btn ghost small" type="button" onClick={onToggle}>{expanded ? "접기" : "열기"}</button>
       </div>

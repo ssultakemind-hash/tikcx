@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { admin, BUCKET, MAX_FILE_BYTES, MAX_FILES_PER_BATCH, weddingBySlug } from "@/lib/supabase";
+import { phase } from "@/lib/dates";
 
 type FileReq = { name: string; type: string; size: number; hasThumb: boolean };
 
@@ -13,6 +14,8 @@ export async function POST(req: Request) {
 
   const wedding = await weddingBySlug(slug);
   if (!wedding) return NextResponse.json({ error: "예식을 찾을 수 없습니다." }, { status: 404 });
+  if (!isPro && !phase(wedding.wedding_date).uploadOpen)
+    return NextResponse.json({ error: "사진 올리기 기간이 끝났어요." }, { status: 403 });
   if (files.length === 0 || files.length > MAX_FILES_PER_BATCH)
     return NextResponse.json({ error: `한 번에 1~${MAX_FILES_PER_BATCH}개까지 올릴 수 있습니다.` }, { status: 400 });
 

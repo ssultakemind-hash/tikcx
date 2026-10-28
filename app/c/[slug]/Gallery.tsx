@@ -1,9 +1,11 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Invite from "./Invite";
+import SaveAll from "./SaveAll";
+import { shortDate, WARN_DAYS, type Phase } from "@/lib/dates";
 
 type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null };
-type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; items: Item[] };
+type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; phase: Phase; items: Item[] };
 type Filter = "all" | "guest" | "pro" | "video";
 
 function withDownload(url: string) {
@@ -68,7 +70,19 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
         <div className="brand">tikcx<small>소중한 순간들을 한곳에</small></div>
         {fromAdmin && <a className="btn ghost small" href="/admin">← 관리자</a>}
       </div>
-      <Invite slug={slug} names={data.wedding.couple_names} defaultOpen={data.items.length === 0} />
+      {data.phase.daysLeft !== null && data.phase.daysLeft <= WARN_DAYS && data.phase.daysLeft > 0 && data.items.length > 0 && (
+        <section className="card warn">
+          <h2>{data.phase.daysLeft}일 뒤 사진이 삭제돼요</h2>
+          <p>{shortDate(data.phase.deleteOn)}에 모든 사진과 영상이 지워져요. 아래 <b>전체 저장</b>으로 지금 저장해 두세요.</p>
+        </section>
+      )}
+      {data.phase.expired && (
+        <section className="card warn">
+          <h2>보관 기간이 끝났어요</h2>
+          <p>예식 후 30일이 지나 사진과 영상이 삭제됐어요.</p>
+        </section>
+      )}
+      {!data.phase.expired && <Invite slug={slug} names={data.wedding.couple_names} defaultOpen={data.items.length === 0} />}
       <section className="card setting">
         <div style={{ minWidth: 0 }}>
           <h2>하객에게 사진 공개</h2>
@@ -89,6 +103,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
           <div className="stat"><b>{stats.videos}</b><span>영상</span></div>
           <div className="stat"><b>{stats.guests}</b><span>보낸 하객</span></div>
         </div>
+        <SaveAll slug={slug} items={data.items} />
         <div className="chips" role="group" aria-label="보기 필터">
           {filters.map(([f, label]) => (
             <button key={f} className="chip" type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>{label}</button>
@@ -110,8 +125,9 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
             ))}
           </div>
         )}
-        <div className="tier"><div><b>무료 보관</b><p className="muted">720p · 워터마크 · 30일 보관</p></div><span className="price">₩0</span></div>
-        <div className="tier pro"><div><b>30일 프리미엄 소장</b><p className="muted">전체 원본 · 워터마크 없음 · 시범 운영 중에는 무료</p></div><span className="price">₩5,500</span></div>
+        {data.phase.deleteOn && (
+          <p className="muted">하객 업로드 {shortDate(data.phase.uploadUntil)}까지 · 앨범 보관 {shortDate(data.phase.deleteOn)}까지</p>
+        )}
       </section>
 
       {cur && (
