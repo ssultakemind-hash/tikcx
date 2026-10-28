@@ -172,15 +172,18 @@ export default function Admin() {
         <h2>예식 목록</h2>
         {list.length === 0 && <div className="empty">아직 만든 예식이 없어요. 위에서 첫 예식을 만들어보세요.</div>}
         <div className="list">
-          {list.map((w) => <WeddingRow key={w.id} w={w} adminKey={key} expanded={open === w.slug} onToggle={() => setOpen(open === w.slug ? null : w.slug)} />)}
+          {list.map((w) => <WeddingRow key={w.id} w={w} adminKey={key} expanded={open === w.slug} onToggle={() => setOpen(open === w.slug ? null : w.slug)} onDeleted={() => { setOpen(null); load(); }} />)}
         </div>
       </section>
     </main>
   );
 }
 
-function WeddingRow({ w, adminKey, expanded, onToggle }: { w: W; adminKey: string; expanded: boolean; onToggle: () => void }) {
+function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; adminKey: string; expanded: boolean; onToggle: () => void; onDeleted: () => void }) {
   const [qr, setQr] = useState("");
+  const [armed, setArmed] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [delError, setDelError] = useState("");
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const guestUrl = `${origin}/w/${w.slug}`;
   const coupleUrl = `${origin}/c/${w.slug}?k=${w.couple_key}`;
@@ -227,8 +230,21 @@ function WeddingRow({ w, adminKey, expanded, onToggle }: { w: W; adminKey: strin
               <button className="btn ghost small" type="button" onClick={() => copy(guestUrl, "guest")}>{copied === "guest" ? "복사됨" : "링크 복사"}</button>
             </div>
           </div>
+
+          <button className="btn ghost small danger" type="button" onClick={remove} disabled={deleting}>
+            {deleting ? "삭제하는 중…" : armed ? "한 번 더 누르면 사진까지 모두 지워져요" : "이 예식 삭제"}
+          </button>
+          {delError && <p className="err">{delError}</p>}
         </>
       )}
     </div>
   );
+
+  async function remove() {
+    if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 4000); return; }
+    setDeleting(true); setDelError("");
+    const r = await fetch("/api/admin/weddings", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ key: adminKey, id: w.id }) });
+    setDeleting(false); setArmed(false);
+    if (r.ok) onDeleted(); else setDelError((await r.json().catch(() => ({}))).error || "삭제하지 못했어요.");
+  }
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { admin } from "@/lib/supabase";
+import { admin, BUCKET } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +29,25 @@ export async function GET(req: Request) {
       return { ...w, photos: s?.photos ?? 0, videos: s?.videos ?? 0, guests: s?.guests.size ?? 0 };
     }),
   });
+}
+
+// Studio admin: delete a wedding with all its photos and videos.
+export async function DELETE(req: Request) {
+  const body = await req.json().catch(() => null);
+  if (!authorized(body?.key ?? null))
+    return NextResponse.json({ error: "관리자 키가 올바르지 않습니다." }, { status: 401 });
+  const db = admin();
+  const { data: w } = await db.from("weddings").select("id").eq("id", body?.id ?? "").maybeSingle();
+  if (!w) return NextResponse.json({ error: "이미 삭제된 예식입니다." }, { status: 404 });
+  for (;;) {
+    const { data: rows } = await db.from("media").select("id, path, thumb_path").eq("wedding_id", w.id).limit(200);
+    if (!rows?.length) break;
+    await db.storage.from(BUCKET).remove(rows.flatMap((r) => (r.thumb_path ? [r.path, r.thumb_path] : [r.path])));
+    await db.from("media").delete().in("id", rows.map((r) => r.id));
+  }
+  const { error } = await db.from("weddings").delete().eq("id", w.id);
+  if (error) return NextResponse.json({ error: "삭제하지 못했어요." }, { status: 500 });
+  return NextResponse.json({ ok: true });
 }
 
 // Studio admin: create a wedding.
