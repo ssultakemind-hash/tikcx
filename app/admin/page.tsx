@@ -1,7 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
-import Uploader from "../w/[slug]/Uploader";
 import { shortUrl, useCopy } from "@/lib/copy";
 
 function coupleMessage(names: string, url: string) {
@@ -133,11 +132,6 @@ function WeddingRow({ w, adminKey, expanded, onToggle }: { w: W; adminKey: strin
               {qr && <a className="btn ghost small" href={qr} download={`tikcx-${w.slug}-qr.png`}>QR 저장</a>}
               <button className="btn ghost small" type="button" onClick={() => copy(guestUrl, "guest")}>{copied === "guest" ? "복사됨" : "링크 복사"}</button>
             </div>
-          </div>
-
-          <div className="panel">
-            <div className="panel-head"><span className="pill">TAKEMIND 원본</span></div>
-            <Uploader slug={w.slug} adminKey={adminKey} />
           </div>
         </>
       )}

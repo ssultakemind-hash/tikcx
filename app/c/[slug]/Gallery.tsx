@@ -28,7 +28,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
   useEffect(() => { load(); const t = setInterval(load, 60_000); return () => clearInterval(t); }, [load]);
 
   const list = useMemo(() => (data?.items ?? []).filter((it) =>
-    filter === "all" || (filter === "guest" && !it.pro) || (filter === "pro" && it.pro) || (filter === "video" && it.kind === "video")), [data, filter]);
+    filter === "all" || (filter === "guest" && it.kind === "image") || (filter === "pro" && it.pro) || (filter === "video" && it.kind === "video")), [data, filter]);
 
   const stats = useMemo(() => {
     const items = data?.items ?? [];
@@ -50,7 +50,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
   if (error) return <main className="wrap"><div className="brand">tikcx</div><div className="card"><h1>앨범을 열 수 없어요</h1><p className="muted">{error} 받으신 신랑·신부 전용 링크를 다시 확인해주세요.</p></div></main>;
   if (!data) return <main className="wrap"><div className="brand">tikcx</div><div className="card"><p className="muted">앨범을 불러오는 중…</p></div></main>;
 
-  const filters: [Filter, string][] = [["all", "전체"], ["guest", "하객"], ["pro", "TAKEMIND 원본"], ["video", "영상"]];
+  const filters: [Filter, string][] = [["all", "전체"], ["guest", "사진"], ["video", "영상"]];
 
   return (
     <main className="wrap">
@@ -84,7 +84,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
                 {it.thumb ? <img src={it.thumb} alt="" loading="lazy" />
                   : it.kind === "video" ? <video src={it.url ?? undefined} muted preload="metadata" playsInline />
                   : <img src={it.url ?? undefined} alt="" loading="lazy" />}
-                <span className="tag">{it.pro ? "원본" : it.from}</span>
+                <span className="tag">{it.from}</span>
                 {it.kind === "video" && <span className="play">▶ 영상</span>}
               </button>
             ))}
