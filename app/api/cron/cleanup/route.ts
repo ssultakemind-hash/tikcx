@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { admin, BUCKET } from "@/lib/supabase";
 import { addDays, KEEP_DAYS, kstToday } from "@/lib/dates";
+import { removeScenes } from "@/lib/scenesServer";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -33,6 +34,7 @@ export async function GET(req: Request) {
       await db.from("weddings").update({ cover_path: null }).eq("id", w.id);
       removed++;
     }
+    await removeScenes(w.id);
     if (removed) report.push({ slug: w.slug, removed });
   }
   return NextResponse.json({ ok: true, cutoff, report });

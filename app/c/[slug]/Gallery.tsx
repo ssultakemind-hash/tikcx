@@ -4,9 +4,10 @@ import Invite from "./Invite";
 import SaveAll from "./SaveAll";
 import CoverPicker from "../../CoverPicker";
 import { shortDate, WARN_DAYS, type Phase } from "@/lib/dates";
+import { SCENES } from "@/lib/scenes";
 
-type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null };
-type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; phase: Phase; cover: string | null; guestCount: number; items: Item[] };
+type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null; scene: string | null; canScene: boolean };
+type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; phase: Phase; cover: string | null; guestCount: number; ai: boolean; items: Item[] };
 type Filter = "all" | "guest" | "pro" | "video";
 
 function withDownload(url: string) {
@@ -20,6 +21,9 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
   const [cur, setCur] = useState<Item | null>(null);
   const [original, setOriginal] = useState(false);
   const [armed, setArmed] = useState(false);
+  const [scene, setScene] = useState<string | null>(null);
+  const [sorting, setSorting] = useState<{ done: number; total: number } | null>(null);
+  const [sortError, setSortError] = useState("");
 
   const load = useCallback(async () => {
     const r = await fetch(`/api/gallery?slug=${encodeURIComponent(slug)}&k=${encodeURIComponent(k)}`, { cache: "no-store" });
@@ -31,7 +35,32 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
   useEffect(() => { load(); const t = setInterval(load, 60_000); return () => clearInterval(t); }, [load]);
 
   const list = useMemo(() => (data?.items ?? []).filter((it) =>
-    filter === "all" || (filter === "guest" && it.kind === "image") || (filter === "pro" && it.pro) || (filter === "video" && it.kind === "video")), [data, filter]);
+    (filter === "all" || (filter === "guest" && it.kind === "image") || (filter === "pro" && it.pro) || (filter === "video" && it.kind === "video"))
+    && (!scene || it.scene === scene)), [data, filter, scene]);
+
+  const sceneCounts = useMemo(() => {
+    const c = new Map<string, number>();
+    (data?.items ?? []).forEach((i) => i.scene && c.set(i.scene, (c.get(i.scene) ?? 0) + 1));
+    return SCENES.filter((s) => c.has(s.key)).map((s) => ({ ...s, n: c.get(s.key)! }));
+  }, [data]);
+  const unsorted = (data?.items ?? []).filter((i) => i.canScene && !i.scene).length;
+
+  // Asks the AI to sort photos into scenes, one batch per call, until none are left.
+  async function sortScenes() {
+    if (sorting) return;
+    setSortError("");
+    const total = (data?.items ?? []).filter((i) => i.canScene).length;
+    setSorting({ done: total - unsorted, total });
+    for (let guard = 0; guard < 300; guard++) {
+      const r = await fetch("/api/scenes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { setSortError(d.error || "장면 정리를 하지 못했어요."); break; }
+      setData((cur) => cur && { ...cur, items: cur.items.map((i) => ({ ...i, scene: d.scenes?.[i.id] ?? i.scene })) });
+      setSorting({ done: d.done, total: d.done + d.left });
+      if (!d.left) break;
+    }
+    setSorting(null);
+  }
 
   const stats = useMemo(() => {
     const items = data?.items ?? [];
@@ -125,6 +154,26 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
             <button key={f} className="chip" type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>{label}</button>
           ))}
         </div>
+        {data.ai && (sceneCounts.length > 0 || unsorted > 0) && (
+          <div className="scenes">
+            {sceneCounts.length > 0 && (
+              <div className="chips wrapchips" role="group" aria-label="장면별 보기">
+                <button className="chip" type="button" aria-pressed={!scene} onClick={() => setScene(null)}>모든 장면</button>
+                {sceneCounts.map((s) => (
+                  <button key={s.key} className="chip" type="button" aria-pressed={scene === s.key} onClick={() => setScene(scene === s.key ? null : s.key)}>
+                    {s.label} <small>{s.n}</small>
+                  </button>
+                ))}
+              </div>
+            )}
+            {unsorted > 0 && (
+              <button className="btn ghost small" type="button" onClick={sortScenes} disabled={!!sorting}>
+                {sorting ? `AI가 장면을 정리하는 중… ${sorting.done}/${sorting.total}` : sceneCounts.length ? `새 사진 ${unsorted}장 장면 정리하기` : `AI로 장면별 정리하기 (${unsorted}장)`}
+              </button>
+            )}
+            {sortError && <p className="notice">{sortError}</p>}
+          </div>
+        )}
         {list.length === 0 ? (
           <div className="empty">아직 올라온 사진이 없어요.<br />하객분들이 QR로 올리면 여기에 바로 모입니다.</div>
         ) : (

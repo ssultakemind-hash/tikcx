@@ -192,3 +192,7 @@ body:has(.live) .foot{display:none}
 .src-table th{text-align:left;font-weight:600;padding:6px 0}
 .src-table td{text-align:right;color:var(--muted);padding:6px 0 6px 8px}
 .src-table td:last-child{color:var(--fg);font-weight:700}
+
+.scenes{display:flex;flex-direction:column;gap:10px}
+.wrapchips{flex-wrap:wrap;overflow:visible}
+.chip small{opacity:.55;font-weight:600;margin-left:2px}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { admin, BUCKET } from "@/lib/supabase";
+import { removeScenes } from "@/lib/scenesServer";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,7 @@ export async function DELETE(req: Request) {
     await db.storage.from(BUCKET).remove(rows.flatMap((r) => (r.thumb_path ? [r.path, r.thumb_path] : [r.path])));
     await db.from("media").delete().in("id", rows.map((r) => r.id));
   }
+  await removeScenes(w.id);
   const { error } = await db.from("weddings").delete().eq("id", w.id);
   if (error) return NextResponse.json({ error: "삭제하지 못했어요." }, { status: 500 });
   return NextResponse.json({ ok: true });

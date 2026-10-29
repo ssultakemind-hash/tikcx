@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { admin, BUCKET, coverUrl, weddingBySlug } from "@/lib/supabase";
 import { phase } from "@/lib/dates";
+import { readScenes } from "@/lib/scenesServer";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export async function GET(req: Request) {
     .limit(2000);
 
   const list = rows ?? [];
+  const scenes = await readScenes(wedding.id);
   const paths = list.flatMap((r) => (r.thumb_path ? [r.path, r.thumb_path] : [r.path]));
   const signed = new Map<string, string>();
   for (let i = 0; i < paths.length; i += 500) {
@@ -32,9 +34,10 @@ export async function GET(req: Request) {
     wedding: { couple_names: wedding.couple_names, wedding_date: wedding.wedding_date, venue: wedding.venue, guest_gallery: wedding.guest_gallery },
     phase: phase(wedding.wedding_date),
     cover: await coverUrl(wedding.cover_path, 60 * 60 * 6),
+    ai: !!process.env.ANTHROPIC_API_KEY,
     guestCount: new Set(list.filter((r) => !r.is_pro).map((r) => r.device_id ?? `name:${r.uploader_name}`)).size,
     items: list.map((r) => ({
-      id: r.id, kind: r.kind, from: r.uploader_name, pro: r.is_pro, at: r.created_at,
+      id: r.id, kind: r.kind, scene: scenes[r.id] ?? null, canScene: !!r.thumb_path, from: r.uploader_name, pro: r.is_pro, at: r.created_at,
       url: signed.get(r.path) ?? null,
       thumb: r.thumb_path ? signed.get(r.thumb_path) ?? null : null,
     })),
