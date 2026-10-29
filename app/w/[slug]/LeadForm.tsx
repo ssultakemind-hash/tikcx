@@ -3,6 +3,14 @@ import { useEffect, useState } from "react";
 import { INTERESTS, TIMINGS } from "@/lib/leads";
 import { deviceId } from "@/lib/upload";
 
+function formatPhone(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length < 4) return d;
+  if (d.length < 8) return `${d.slice(0, 3)}-${d.slice(3)}`;
+  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
+}
+
 // "결혼 준비 중이세요?" — a guest who is getting married can leave their contact.
 export default function LeadForm({ slug }: { slug: string }) {
   const [open, setOpen] = useState(false);
@@ -65,7 +73,7 @@ export default function LeadForm({ slug }: { slug: string }) {
       <div className="field"><label htmlFor="lead-name">이름</label>
         <input id="lead-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={30} autoComplete="name" required /></div>
       <div className="field"><label htmlFor="lead-phone">휴대폰 번호</label>
-        <input id="lead-phone" value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" placeholder="010-0000-0000" autoComplete="tel" required /></div>
+        <input id="lead-phone" value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} inputMode="numeric" maxLength={13} placeholder="010-0000-0000" autoComplete="tel" required /></div>
       <fieldset className="field plain">
         <legend>결혼 예정 시기</legend>
         <div className="chips">
@@ -82,12 +90,12 @@ export default function LeadForm({ slug }: { slug: string }) {
           ))}
         </div>
       </fieldset>
-      <label className="check">
+      <label className="consent">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
         <span><b>[필수]</b> 개인정보 수집·이용 동의<br />
           <small>이름, 휴대폰 번호, 결혼 예정 시기, 고민 중인 항목을 틱스 사용 안내 연락에 써요. 1년 보관 후 지우고, 언제든 삭제를 요청할 수 있어요.</small></span>
       </label>
-      <label className="check">
+      <label className="consent">
         <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} />
         <span>[선택] 틱스 소식 받기<br />
           <small>결혼 준비에 도움 되는 틱스 소식과 혜택을 문자나 카카오톡으로 받아요. 언제든 그만 받을 수 있어요.</small></span>
