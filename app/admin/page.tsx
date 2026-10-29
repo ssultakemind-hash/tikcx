@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import SaveImageButton from "../SaveImageButton";
+import TableCard from "../TableCard";
 import { shortUrl, useCopy } from "@/lib/copy";
 import { daysBetween, kstToday, phase, shortDate, WARN_DAYS } from "@/lib/dates";
 import CoverPicker from "../CoverPicker";
@@ -236,6 +237,11 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
               {qr && <SaveImageButton dataUrl={qr} filename={`tikcx-${w.slug}-qr.png`} />}
               <button className="btn ghost small" type="button" onClick={() => copy(guestUrl, "guest")}>{copied === "guest" ? "복사됨" : "링크 복사"}</button>
             </div>
+          </div>
+
+          <div className="panel">
+            <div className="panel-head"><span className="pill">테이블 카드</span><span className="muted">인쇄용</span></div>
+            <TableCard url={guestUrl} slug={w.slug} names={w.couple_names} date={w.wedding_date} venue={w.venue} />
           </div>
 
           <button className="btn ghost small danger" type="button" onClick={remove} disabled={deleting}>
