@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
+import SaveImageButton from "../../SaveImageButton";
 import { useCopy } from "@/lib/copy";
 
 // Couple-side: everything they need to invite guests, kept apart from their private link.
@@ -33,7 +34,7 @@ export default function Invite({ slug, names, defaultOpen }: { slug: string; nam
       </button>
       <div className="row two">
         <button className="btn ghost small" type="button" onClick={() => copy(guestUrl, "url")}>{copied === "url" ? "복사됨" : "링크만 복사"}</button>
-        {qr && <a className="btn ghost small" href={qr} download={`tikcx-${slug}-qr.png`}>QR 저장</a>}
+        {qr && <SaveImageButton dataUrl={qr} filename={`tikcx-${slug}-qr.png`} />}
       </div>
       <p className="notice">지금 보고 계신 이 페이지 주소는 두 분만 간직해 주세요. 이 주소가 있으면 모든 사진을 보고 지울 수 있어요.</p>
       {!defaultOpen && <button className="btn ghost small" type="button" onClick={() => setOpen(false)}>접기</button>}

@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
+import SaveImageButton from "../SaveImageButton";
 import { shortUrl, useCopy } from "@/lib/copy";
 import { daysBetween, kstToday, phase, shortDate, WARN_DAYS } from "@/lib/dates";
 import CoverPicker from "../CoverPicker";
@@ -232,7 +233,7 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
             <div className="panel-head"><span className="pill">하객</span><span className="muted">{shortUrl(guestUrl)}</span></div>
             {qr && <img className="qr" src={qr} alt={`${w.couple_names} 하객 업로드 QR`} />}
             <div className="row two">
-              {qr && <a className="btn ghost small" href={qr} download={`tikcx-${w.slug}-qr.png`}>QR 저장</a>}
+              {qr && <SaveImageButton dataUrl={qr} filename={`tikcx-${w.slug}-qr.png`} />}
               <button className="btn ghost small" type="button" onClick={() => copy(guestUrl, "guest")}>{copied === "guest" ? "복사됨" : "링크 복사"}</button>
             </div>
           </div>
