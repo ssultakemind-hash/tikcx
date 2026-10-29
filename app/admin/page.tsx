@@ -184,6 +184,7 @@ export default function Admin() {
 
 function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; adminKey: string; expanded: boolean; onToggle: () => void; onDeleted: () => void }) {
   const [qr, setQr] = useState("");
+  const [cover, setCover] = useState(w.cover_url);
   const [armed, setArmed] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [delError, setDelError] = useState("");
@@ -200,10 +201,11 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
 
   return (
     <div className="item">
-      <div className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
-        <div style={{ minWidth: 0 }}>
+      <div className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap", alignItems: "center" }}>
+        {cover ? <img className="row-cover" src={cover} alt="" /> : <div className="row-cover empty-thumb" aria-hidden="true" />}
+        <div style={{ minWidth: 0, flex: 1 }}>
           <b>{w.couple_names}</b>
-          <p className="muted">{[w.wedding_date, w.venue].filter(Boolean).join(" · ")}</p>
+          <p className="muted">{[shortDate(w.wedding_date), w.venue].filter(Boolean).join(" · ")}</p>
           <p className="muted">사진 {w.photos} · 영상 {w.videos} · 하객 {w.guests}명</p>
           {w.wedding_date && (() => {
             const p = phase(w.wedding_date);
@@ -216,7 +218,7 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
         <>
           <div className="panel">
             <div className="panel-head"><span className="pill">대표 사진</span><span className="muted">하객 페이지 맨 위에 크게 나와요</span></div>
-            <CoverPicker slug={w.slug} auth={{ adminKey }} initialUrl={w.cover_url} />
+            <CoverPicker slug={w.slug} auth={{ adminKey }} initialUrl={w.cover_url} onChange={setCover} />
           </div>
 
           <div className="panel">

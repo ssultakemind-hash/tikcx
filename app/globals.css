@@ -144,3 +144,4 @@ label.pick input{position:absolute;opacity:0;width:1px;height:1px}
 .notice{font-size:13px;line-height:1.55;color:var(--muted);background:var(--fill);border-radius:12px;padding:12px 14px}
 
 @media (prefers-reduced-motion:reduce){.bar i,.btn,.tile img{transition:none}}
+.row-cover{width:52px;height:64px;border-radius:10px;object-fit:cover;flex:none;background:var(--surface)}
