@@ -39,3 +39,6 @@ on conflict (id) do nothing;
 
 -- 2026-10-29: couple can show/hide all photos to guests (default: shown)
 alter table public.weddings add column if not exists guest_gallery boolean not null default true;
+
+-- 2026-10-29: cover photo shown at the top of guest and couple pages
+alter table public.weddings add column if not exists cover_path text;

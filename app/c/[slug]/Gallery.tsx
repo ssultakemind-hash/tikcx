@@ -2,10 +2,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Invite from "./Invite";
 import SaveAll from "./SaveAll";
+import CoverPicker from "../../CoverPicker";
 import { shortDate, WARN_DAYS, type Phase } from "@/lib/dates";
 
 type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null };
-type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; phase: Phase; items: Item[] };
+type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; phase: Phase; cover: string | null; items: Item[] };
 type Filter = "all" | "guest" | "pro" | "video";
 
 function withDownload(url: string) {
@@ -93,7 +94,22 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
         <button type="button" role="switch" aria-checked={data.wedding.guest_gallery} aria-label="하객에게 사진 공개"
           className="switch" onClick={toggleShare} disabled={saving}><i /></button>
       </section>
+      {!data.phase.expired && (
+        <section className="card">
+          <div>
+            <h2>대표 사진</h2>
+            <p className="muted">하객 페이지 맨 위에 크게 보여요. 두 분이 좋아하는 사진으로 바꿀 수 있어요.</p>
+          </div>
+          <CoverPicker slug={slug} auth={{ k }} initialUrl={data.cover}
+            onChange={(url) => setData((d) => d && { ...d, cover: url })} />
+        </section>
+      )}
       <section className="card">
+        {data.cover && (
+          <div className="hero photo" style={{ backgroundImage: `url("${data.cover}")`, aspectRatio: "16 / 10" }}>
+            <div><div className="names">{data.wedding.couple_names}</div></div>
+          </div>
+        )}
         <div>
           <div className="eyebrow">{data.wedding.couple_names} · 신랑·신부 전용</div>
           <h1>오늘의 순간들</h1>

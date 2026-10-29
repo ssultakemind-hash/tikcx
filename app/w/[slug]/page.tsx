@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { formatDate, weddingBySlug } from "@/lib/supabase";
+import { coverUrl, formatDate, weddingBySlug } from "@/lib/supabase";
 import { phase, shortDate } from "@/lib/dates";
 import GuestArea from "./GuestArea";
 
@@ -10,9 +10,10 @@ export default async function GuestPage({ params }: { params: Promise<{ slug: st
   const w = await weddingBySlug(slug);
   if (!w) notFound();
   const p = phase(w.wedding_date);
+  const cover = await coverUrl(w.cover_path);
 
   const hero = (
-    <div className="hero"><div>
+    <div className={cover ? "hero photo" : "hero"} style={cover ? { backgroundImage: `url("${cover}")` } : undefined}><div>
       <div className="names">{w.couple_names}</div>
       <div className="meta">{[formatDate(w.wedding_date), w.venue].filter(Boolean).join(" · ")}</div>
     </div></div>

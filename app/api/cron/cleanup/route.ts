@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
   const db = admin();
   const cutoff = addDays(kstToday(), -KEEP_DAYS); // wedding_date <= cutoff means expired
-  const { data: weddings } = await db.from("weddings").select("id, slug").not("wedding_date", "is", null).lte("wedding_date", cutoff);
+  const { data: weddings } = await db.from("weddings").select("id, slug, cover_path").not("wedding_date", "is", null).lte("wedding_date", cutoff);
 
   const report: { slug: string; removed: number }[] = [];
   for (const w of weddings ?? []) {
@@ -27,6 +27,11 @@ export async function GET(req: Request) {
       await db.storage.from(BUCKET).remove(paths);
       await db.from("media").delete().in("id", rows.map((r) => r.id));
       removed += rows.length;
+    }
+    if (w.cover_path) {
+      await db.storage.from(BUCKET).remove([w.cover_path]);
+      await db.from("weddings").update({ cover_path: null }).eq("id", w.id);
+      removed++;
     }
     if (removed) report.push({ slug: w.slug, removed });
   }

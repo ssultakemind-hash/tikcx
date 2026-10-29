@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { shortUrl, useCopy } from "@/lib/copy";
 import { daysBetween, kstToday, phase, shortDate, WARN_DAYS } from "@/lib/dates";
+import CoverPicker from "../CoverPicker";
 
 function coupleMessage(names: string, url: string) {
   return `[TAKEMIND] ${names}님, 결혼 진심으로 축하드려요.
@@ -106,7 +107,7 @@ function TodayList({ list }: { list: W[] }) {
   );
 }
 
-type W = { id: string; slug: string; couple_names: string; wedding_date: string | null; venue: string | null; couple_key: string; photos: number; videos: number; guests: number };
+type W = { id: string; slug: string; couple_names: string; wedding_date: string | null; venue: string | null; couple_key: string; cover_url: string | null; photos: number; videos: number; guests: number };
 
 export default function Admin() {
   const [key, setKey] = useState("");
@@ -211,6 +212,11 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
       </div>
       {expanded && (
         <>
+          <div className="panel">
+            <div className="panel-head"><span className="pill">대표 사진</span><span className="muted">하객 페이지 맨 위에 크게 나와요</span></div>
+            <CoverPicker slug={w.slug} auth={{ adminKey }} initialUrl={w.cover_url} />
+          </div>
+
           <div className="panel">
             <div className="panel-head"><span className="pill">신랑·신부</span><span className="muted">두 사람에게만 보내세요</span></div>
             <button className="btn" type="button" onClick={() => copy(kakao, "kakao")}>

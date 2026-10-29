@@ -20,12 +20,13 @@ export type Wedding = {
   venue: string | null;
   couple_key: string;
   guest_gallery: boolean;
+  cover_path: string | null;
 };
 
 export async function weddingBySlug(slug: string) {
   const { data } = await admin()
     .from("weddings")
-    .select("id, slug, couple_names, wedding_date, venue, couple_key, guest_gallery")
+    .select("id, slug, couple_names, wedding_date, venue, couple_key, guest_gallery, cover_path")
     .eq("slug", slug)
     .maybeSingle();
   return (data as Wedding | null) ?? null;
@@ -36,4 +37,10 @@ export function formatDate(d: string | null) {
   const dt = new Date(d + "T00:00:00");
   const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
   return `${dt.getFullYear()}. ${dt.getMonth() + 1}. ${dt.getDate()} ${days[dt.getDay()]}`;
+}
+
+export async function coverUrl(path: string | null, seconds = 60 * 60 * 24) {
+  if (!path) return null;
+  const { data } = await admin().storage.from(BUCKET).createSignedUrl(path, seconds);
+  return data?.signedUrl ?? null;
 }

@@ -13,7 +13,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "관리자 키가 올바르지 않습니다." }, { status: 401 });
   const db = admin();
   const { data: weddings } = await db
-    .from("weddings").select("id, slug, couple_names, wedding_date, venue, couple_key, created_at")
+    .from("weddings").select("id, slug, couple_names, wedding_date, venue, couple_key, cover_path, created_at")
     .order("wedding_date", { ascending: false, nullsFirst: false }).limit(200);
   const { data: media } = await db.from("media").select("wedding_id, kind, is_pro, uploader_name").eq("uploaded", true).limit(100000);
   const stats = new Map<string, { photos: number; videos: number; guests: Set<string> }>();
@@ -23,10 +23,16 @@ export async function GET(req: Request) {
     if (!m.is_pro) s.guests.add(m.uploader_name);
     stats.set(m.wedding_id, s);
   });
+  const covers = new Map<string, string>();
+  const coverPaths = (weddings ?? []).map((w) => w.cover_path).filter(Boolean) as string[];
+  if (coverPaths.length) {
+    const { data } = await db.storage.from(BUCKET).createSignedUrls(coverPaths, 60 * 60 * 6);
+    data?.forEach((s) => s.path && s.signedUrl && covers.set(s.path, s.signedUrl));
+  }
   return NextResponse.json({
-    weddings: (weddings ?? []).map((w) => {
+    weddings: (weddings ?? []).map(({ cover_path, ...w }) => {
       const s = stats.get(w.id);
-      return { ...w, photos: s?.photos ?? 0, videos: s?.videos ?? 0, guests: s?.guests.size ?? 0 };
+      return { ...w, cover_url: cover_path ? covers.get(cover_path) ?? null : null, photos: s?.photos ?? 0, videos: s?.videos ?? 0, guests: s?.guests.size ?? 0 };
     }),
   });
 }
@@ -37,7 +43,8 @@ export async function DELETE(req: Request) {
   if (!authorized(body?.key ?? null))
     return NextResponse.json({ error: "관리자 키가 올바르지 않습니다." }, { status: 401 });
   const db = admin();
-  const { data: w } = await db.from("weddings").select("id").eq("id", body?.id ?? "").maybeSingle();
+  const { data: w } = await db.from("weddings").select("id, cover_path").eq("id", body?.id ?? "").maybeSingle();
+  if (w?.cover_path) await db.storage.from(BUCKET).remove([w.cover_path]);
   if (!w) return NextResponse.json({ error: "이미 삭제된 예식입니다." }, { status: 404 });
   for (;;) {
     const { data: rows } = await db.from("media").select("id, path, thumb_path").eq("wedding_id", w.id).limit(200);
