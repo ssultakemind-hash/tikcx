@@ -60,23 +60,23 @@ export async function makeCard(opts: { url: string; names: string; date: string 
   x.fillText(head2, W / 2, 490);
 
   // QR on a soft panel
-  const qs = 620, ql = (W - qs) / 2, qt = 570, pad = 44;
+  const qs = 620, ql = (W - qs) / 2, qt = 600, pad = 44;
   x.fillStyle = "#F5F5F7"; roundRect(x, ql - pad, qt - pad, qs + pad * 2, qs + pad * 2, 48); x.fill();
   x.fillStyle = "#FFFFFF"; roundRect(x, ql - 18, qt - 18, qs + 36, qs + 36, 24); x.fill();
   x.drawImage(qr, ql, qt, qs, qs);
 
   // how to
   x.fillStyle = "#0A0A0A"; x.font = `700 44px ${SANS}`;
-  x.fillText("카메라로 QR을 비춰주세요", W / 2, 1350);
+  x.fillText("카메라로 QR을 비춰주세요", W / 2, 1372);
   x.fillStyle = "#86868B"; x.font = `500 30px ${SANS}`;
-  x.fillText("앱 설치, 가입 없이 바로 올려요 · 영상은 30초 이내로", W / 2, 1405);
+  x.fillText("앱 설치, 가입 없이 바로 올려요 · 영상은 30초 이내로", W / 2, 1426);
 
   // couple
   x.strokeStyle = "#E5E5EA"; x.lineWidth = 3;
-  x.beginPath(); x.moveTo(W / 2 - 60, 1470); x.lineTo(W / 2 + 60, 1470); x.stroke();
+  x.beginPath(); x.moveTo(W / 2 - 60, 1488); x.lineTo(W / 2 + 60, 1488); x.stroke();
   x.fillStyle = "#0A0A0A"; x.font = `700 50px ${SANS}`;
-  x.fillText(opts.names, W / 2, 1560);
-  if (info) { x.fillStyle = "#86868B"; x.font = `500 30px ${SANS}`; x.fillText(info, W / 2, 1615); }
+  x.fillText(opts.names, W / 2, 1572);
+  if (info) { x.fillStyle = "#86868B"; x.font = `500 30px ${SANS}`; x.fillText(info, W / 2, 1624); }
 
   // footer
   x.fillStyle = "#B0B0B5"; x.font = `600 22px ${SANS}`;
