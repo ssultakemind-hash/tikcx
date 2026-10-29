@@ -59,15 +59,15 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
     setCur(null); setArmed(false);
   }
 
-  if (error) return <main className="wrap"><div className="brand">tikcx</div><div className="card"><h1>앨범을 열 수 없어요</h1><p className="muted">{error} 받으신 신랑·신부 전용 링크를 다시 확인해주세요.</p></div></main>;
-  if (!data) return <main className="wrap"><div className="brand">tikcx</div><div className="card"><p className="muted">앨범을 불러오는 중…</p></div></main>;
+  if (error) return <main className="wrap"><div className="brand"><span className="logo" aria-label="tikcx">tikcx<i>.</i></span></div><div className="card"><h1>앨범을 열 수 없어요</h1><p className="muted">{error} 받으신 신랑·신부 전용 링크를 다시 확인해주세요.</p></div></main>;
+  if (!data) return <main className="wrap"><div className="brand"><span className="logo" aria-label="tikcx">tikcx<i>.</i></span></div><div className="card"><p className="muted">앨범을 불러오는 중…</p></div></main>;
 
   const filters: [Filter, string][] = [["all", "전체"], ["guest", "사진"], ["video", "영상"]];
 
   return (
     <main className="wrap">
       <div className="row" style={{ justifyContent: "space-between" }}>
-        <div className="brand">tikcx<small>소중한 순간들을 한곳에</small></div>
+        <div className="brand"><span className="logo" aria-label="tikcx">tikcx<i>.</i></span><small>소중한 순간들을 한곳에</small></div>
         {fromAdmin && <a className="btn ghost small" href="/admin">← 관리자</a>}
       </div>
       {data.phase.daysLeft !== null && data.phase.daysLeft <= WARN_DAYS && data.phase.daysLeft > 0 && data.items.length > 0 && (

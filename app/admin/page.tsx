@@ -138,7 +138,7 @@ export default function Admin() {
   if (!authed) {
     return (
       <main className="wrap">
-        <div className="brand">tikcx<small>스튜디오 관리자</small></div>
+        <div className="brand"><span className="logo" aria-label="tikcx">tikcx<i>.</i></span><small>스튜디오 관리자</small></div>
         <form className="card" onSubmit={(e) => { e.preventDefault(); load(); }}>
           <h1>관리자 로그인</h1>
           <div className="field"><label htmlFor="admin-key">관리자 키</label>
@@ -152,7 +152,7 @@ export default function Admin() {
 
   return (
     <main className="wrap wide">
-      <div className="brand">tikcx<small>스튜디오 관리자</small></div>
+      <div className="brand"><span className="logo" aria-label="tikcx">tikcx<i>.</i></span><small>스튜디오 관리자</small></div>
       <TodayList list={list} />
       <form className="card" onSubmit={create}>
         <h2>새 예식 만들기</h2>

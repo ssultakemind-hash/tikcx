@@ -21,7 +21,7 @@ export default async function GuestPage({ params }: { params: Promise<{ slug: st
   if (p.expired) {
     return (
       <main className="wrap">
-        <div className="brand">tikcx<small>소중한 순간들을 한곳에</small></div>
+        <div className="brand"><span className="logo" aria-label="tikcx">tikcx<i>.</i></span><small>소중한 순간들을 한곳에</small></div>
         <section className="card">
           {hero}
           <h1>함께해 주셔서<br />고마웠어요</h1>
@@ -33,7 +33,7 @@ export default async function GuestPage({ params }: { params: Promise<{ slug: st
 
   return (
     <main className="wrap">
-      <div className="brand">tikcx<small>소중한 순간들을 한곳에</small></div>
+      <div className="brand"><span className="logo" aria-label="tikcx">tikcx<i>.</i></span><small>소중한 순간들을 한곳에</small></div>
       <GuestArea slug={w.slug} uploadOpen={p.uploadOpen}>
         {hero}
         {p.uploadOpen ? (
