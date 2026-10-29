@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useStableUrls } from "@/lib/stableUrls";
 
 type Item = { id: string; kind: "image" | "video"; from: string; thumb: string };
 
@@ -7,11 +8,12 @@ type Item = { id: string; kind: "image" | "video"; from: string; thumb: string }
 export default function Wall({ slug, refresh }: { slug: string; refresh: number }) {
   const [items, setItems] = useState<Item[] | null>(null);
   const [open, setOpen] = useState<Item | null>(null);
+  const stable = useStableUrls();
 
   useEffect(() => {
     let alive = true;
     const load = () => fetch(`/api/wall?slug=${encodeURIComponent(slug)}`, { cache: "no-store" })
-      .then((r) => r.json()).then((d) => alive && setItems(d.enabled ? d.items : null)).catch(() => {});
+      .then((r) => r.json()).then((d) => alive && setItems(d.enabled ? stable(d.items as Item[]) : null)).catch(() => {});
     load();
     const t = setInterval(load, 30_000);
     return () => { alive = false; clearInterval(t); };

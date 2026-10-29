@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { withSource } from "@/lib/sources";
+import { useStableUrls } from "@/lib/stableUrls";
 
 type Item = { id: string; kind: "image" | "video"; from: string; thumb: string };
 
@@ -16,6 +17,7 @@ export default function LiveScreen({ slug, names }: { slug: string; names: strin
   const [fresh, setFresh] = useState<string | null>(null); // id of a just-arrived photo
   const seen = useRef<Set<string>>(new Set());
   const first = useRef(true);
+  const stable = useStableUrls();
 
   useEffect(() => {
     const url = withSource(`${location.origin}/w/${slug}`, "screen");
@@ -30,7 +32,7 @@ export default function LiveScreen({ slug, names }: { slug: string; names: strin
         const d = await fetch(`/api/wall?slug=${encodeURIComponent(slug)}`, { cache: "no-store" }).then((r) => r.json());
         if (!alive) return;
         setEnabled(!!d.enabled);
-        const list: Item[] = (d.items ?? []).filter((i: Item) => i.kind === "image");
+        const list: Item[] = stable((d.items ?? []).filter((i: Item) => i.kind === "image"));
         const newcomer = list.find((i) => !seen.current.has(i.id));
         list.forEach((i) => seen.current.add(i.id));
         setItems(list);
@@ -64,7 +66,8 @@ export default function LiveScreen({ slug, names }: { slug: string; names: strin
     <div className="live">
       <div className="live-stage">
         {showPhotos ? (
-          items.map((it, i) => (
+          // Only the current and next slide are in the page, so the screen never loads all 300 photos at once.
+          items.map((it, i) => (i === idx || i === (idx + 1) % items.length) && (
             <div key={it.id} className={`live-slide${i === idx ? " on" : ""}`} aria-hidden={i !== idx}>
               <img className="live-bg" src={it.thumb} alt="" />
               <img className="live-photo" src={it.thumb} alt={`${it.from}이 올린 사진`} />
