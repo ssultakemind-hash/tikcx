@@ -27,7 +27,7 @@ export default function Invite({ slug, names, defaultOpen }: { slug: string; nam
         <div className="eyebrow">하객 초대하기</div>
         <h2>모바일 청첩장에 이 링크를 넣어주세요</h2>
       </div>
-      <p className="muted">하객분들은 이 링크나 QR로 사진을 올릴 수 있어요. 올리기만 가능하고, 다른 사람 사진은 볼 수 없어요.</p>
+      <p className="muted">하객분들은 이 링크나 QR로 사진을 올릴 수 있어요. 원본 저장과 삭제는 두 분만 할 수 있어요.</p>
       {qr && <img className="qr center" src={qr} alt={`${names} 하객 업로드 QR`} />}
       <button className="btn" type="button" onClick={() => copy(invitation, "inv")}>
         {copied === "inv" ? "복사됐어요" : "청첩장용 문구 복사"}
