@@ -13,14 +13,20 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "관리자 키가 올바르지 않습니다." }, { status: 401 });
   const db = admin();
   const { data: weddings } = await db
-    .from("weddings").select("id, slug, couple_names, wedding_date, venue, couple_key, cover_path, visitors, created_at")
+    .from("weddings").select("id, slug, couple_names, wedding_date, venue, couple_key, cover_path, visitors, visit_sources, created_at")
     .order("wedding_date", { ascending: false, nullsFirst: false }).limit(200);
-  const { data: media } = await db.from("media").select("wedding_id, kind, is_pro, uploader_name, device_id").eq("uploaded", true).limit(100000);
-  const stats = new Map<string, { photos: number; videos: number; guests: Set<string> }>();
+  const { data: media } = await db.from("media").select("wedding_id, kind, is_pro, uploader_name, device_id, source").eq("uploaded", true).limit(100000);
+  const stats = new Map<string, { photos: number; videos: number; guests: Set<string>; bySource: Map<string, Set<string>> }>();
   media?.forEach((m) => {
-    const s = stats.get(m.wedding_id) ?? { photos: 0, videos: 0, guests: new Set<string>() };
+    const s = stats.get(m.wedding_id) ?? { photos: 0, videos: 0, guests: new Set<string>(), bySource: new Map<string, Set<string>>() };
     m.kind === "video" ? s.videos++ : s.photos++;
-    if (!m.is_pro) s.guests.add(m.device_id ?? `name:${m.uploader_name}`);
+    if (!m.is_pro) {
+      const who = m.device_id ?? `name:${m.uploader_name}`;
+      s.guests.add(who);
+      const src = m.source ?? "direct";
+      if (!s.bySource.has(src)) s.bySource.set(src, new Set());
+      s.bySource.get(src)!.add(who);
+    }
     stats.set(m.wedding_id, s);
   });
   const covers = new Map<string, string>();
@@ -32,7 +38,8 @@ export async function GET(req: Request) {
   return NextResponse.json({
     weddings: (weddings ?? []).map(({ cover_path, ...w }) => {
       const s = stats.get(w.id);
-      return { ...w, cover_url: cover_path ? covers.get(cover_path) ?? null : null, photos: s?.photos ?? 0, videos: s?.videos ?? 0, guests: s?.guests.size ?? 0 };
+      const upload_sources = Object.fromEntries([...(s?.bySource ?? new Map<string, Set<string>>())].map(([k, v]) => [k, v.size]));
+      return { ...w, upload_sources, visit_sources: w.visit_sources ?? {}, cover_url: cover_path ? covers.get(cover_path) ?? null : null, photos: s?.photos ?? 0, videos: s?.videos ?? 0, guests: s?.guests.size ?? 0 };
     }),
   });
 }

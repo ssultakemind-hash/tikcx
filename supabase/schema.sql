@@ -68,3 +68,14 @@ create table if not exists public.leads (
 );
 create index if not exists leads_created_idx on public.leads (created_at desc);
 alter table public.leads enable row level security;
+
+-- 2026-10-30: where guests came from (QR on table card, room screen, invitation link...)
+alter table public.weddings add column if not exists visit_sources jsonb not null default '{}'::jsonb;
+alter table public.media add column if not exists source text;
+create or replace function public.inc_visit(wid uuid, src text) returns void
+language sql security definer set search_path = public
+as $$ update public.weddings
+  set visitors = visitors + 1,
+      visit_sources = visit_sources || jsonb_build_object(src, coalesce((visit_sources->>src)::int, 0) + 1)
+  where id = wid; $$;
+revoke execute on function public.inc_visit(uuid, text) from public, anon, authenticated;

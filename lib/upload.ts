@@ -18,7 +18,7 @@ export async function makeThumb(file: File): Promise<Blob | null> {
       source = img; w = img.naturalWidth; h = img.naturalHeight;
     }
     if (!w || !h) return null;
-    const s = Math.min(1, 640 / Math.max(w, h));
+    const s = Math.min(1, 1280 / Math.max(w, h));
     const c = document.createElement("canvas");
     c.width = Math.round(w * s); c.height = Math.round(h * s);
     c.getContext("2d")!.drawImage(source, 0, 0, c.width, c.height);
@@ -53,14 +53,22 @@ export function deviceId(): string {
   } catch { return ""; }
 }
 
-// Counts this phone's first visit to a wedding page once.
+// Counts this phone's first visit to a wedding page once, remembering where it came from
+// (?from=screen / card / invite / qr). The first source wins.
 export function countVisit(slug: string) {
+  let source = "direct";
   try {
     const k = `tikcx_visited_${slug}`;
     if (localStorage.getItem(k)) return;
+    source = new URLSearchParams(location.search).get("from") || "direct";
     localStorage.setItem(k, "1");
+    localStorage.setItem(`tikcx_src_${slug}`, source);
   } catch { return; }
-  fetch("/api/visit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug }) }).catch(() => {});
+  fetch("/api/visit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, source }) }).catch(() => {});
+}
+
+export function visitSource(slug: string) {
+  try { return localStorage.getItem(`tikcx_src_${slug}`) || "direct"; } catch { return "direct"; }
 }
 
 const mineKey = (slug: string) => `tikcx_mine_${slug}`;
@@ -78,7 +86,7 @@ export async function uploadFiles(
   const thumbs = await Promise.all(files.map(makeThumb));
   const res = await fetch("/api/upload-url", {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ slug, uploader, adminKey, deviceId: deviceId(), files: files.map((f, i) => ({ name: f.name, type: f.type, size: f.size, hasThumb: !!thumbs[i] })) }),
+    body: JSON.stringify({ slug, uploader, adminKey, deviceId: deviceId(), source: visitSource(slug), files: files.map((f, i) => ({ name: f.name, type: f.type, size: f.size, hasThumb: !!thumbs[i] })) }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "업로드를 시작하지 못했습니다.");

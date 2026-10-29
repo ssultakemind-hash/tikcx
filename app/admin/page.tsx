@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import SaveImageButton from "../SaveImageButton";
 import TableCard from "../TableCard";
 import Leads from "./Leads";
+import { SOURCES, withSource } from "@/lib/sources";
 import { shortUrl, useCopy } from "@/lib/copy";
 import { daysBetween, kstToday, phase, shortDate, WARN_DAYS } from "@/lib/dates";
 import CoverPicker from "../CoverPicker";
@@ -110,7 +111,7 @@ function TodayList({ list }: { list: W[] }) {
   );
 }
 
-type W = { id: string; slug: string; couple_names: string; wedding_date: string | null; venue: string | null; couple_key: string; cover_url: string | null; visitors: number; photos: number; videos: number; guests: number };
+type W = { id: string; slug: string; couple_names: string; wedding_date: string | null; venue: string | null; couple_key: string; cover_url: string | null; visitors: number; visit_sources: Record<string, number>; upload_sources: Record<string, number>; photos: number; videos: number; guests: number };
 
 export default function Admin() {
   const [key, setKey] = useState("");
@@ -195,7 +196,7 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
   const coupleUrl = `${origin}/c/${w.slug}?k=${w.couple_key}`;
 
   useEffect(() => {
-    if (expanded) QRCode.toDataURL(guestUrl, { width: 1024, margin: 2, color: { dark: "#141615", light: "#ffffff" } }).then(setQr).catch(() => {});
+    if (expanded) QRCode.toDataURL(withSource(guestUrl, "qr"), { width: 1024, margin: 2, color: { dark: "#141615", light: "#ffffff" } }).then(setQr).catch(() => {});
   }, [expanded, guestUrl]);
 
   const { copied, copy } = useCopy();
@@ -240,13 +241,36 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
             {qr && <img className="qr" src={qr} alt={`${w.couple_names} 하객 업로드 QR`} />}
             <div className="row two">
               {qr && <SaveImageButton dataUrl={qr} filename={`tikcx-${w.slug}-qr.png`} />}
-              <button className="btn ghost small" type="button" onClick={() => copy(guestUrl, "guest")}>{copied === "guest" ? "복사됨" : "링크 복사"}</button>
+              <button className="btn ghost small" type="button" onClick={() => copy(withSource(guestUrl, "invite"), "guest")}>{copied === "guest" ? "복사됨" : "링크 복사"}</button>
             </div>
           </div>
 
           <div className="panel">
+            <div className="panel-head"><span className="pill">대기실 화면</span><span className="muted">모니터에 띄우는 실시간 사진 화면</span></div>
+            <p className="muted">노트북이나 아이패드에서 이 화면을 열고 전체 화면으로 띄우세요. 올라오는 사진이 바로 넘어가요.</p>
+            <div className="row two">
+              <a className="btn small" href={`/w/${w.slug}/live`} target="_blank" rel="noopener">화면 열기</a>
+              <button className="btn ghost small" type="button" onClick={() => copy(`${origin}/w/${w.slug}/live`, "live")}>{copied === "live" ? "복사됨" : "주소 복사"}</button>
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panel-head"><span className="pill">어디서 들어왔나</span><span className="muted">방문 → 올린 사람</span></div>
+            {w.visitors === 0 ? <p className="muted">아직 방문이 없어요.</p> : (
+              <table className="src-table">
+                <tbody>
+                  {SOURCES.filter((s) => (w.visit_sources[s.id] ?? 0) > 0 || (w.upload_sources[s.id] ?? 0) > 0).map((s) => {
+                    const v = w.visit_sources[s.id] ?? 0, u = w.upload_sources[s.id] ?? 0;
+                    return <tr key={s.id}><th>{s.label}</th><td>{v}명</td><td>{u}명</td><td>{v ? `${Math.min(100, Math.round((u / v) * 100))}%` : "-"}</td></tr>;
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          <div className="panel">
             <div className="panel-head"><span className="pill">테이블 카드</span><span className="muted">인쇄용</span></div>
-            <TableCard url={guestUrl} slug={w.slug} names={w.couple_names} date={w.wedding_date} venue={w.venue} />
+            <TableCard url={withSource(guestUrl, "card")} slug={w.slug} names={w.couple_names} date={w.wedding_date} venue={w.venue} />
           </div>
 
           <button className="btn ghost small danger" type="button" onClick={remove} disabled={deleting}>

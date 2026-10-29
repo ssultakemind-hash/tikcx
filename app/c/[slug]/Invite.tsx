@@ -3,19 +3,21 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import SaveImageButton from "../../SaveImageButton";
 import { useCopy } from "@/lib/copy";
+import { withSource } from "@/lib/sources";
 
 // Couple-side: everything they need to invite guests, kept apart from their private link.
 export default function Invite({ slug, names, defaultOpen }: { slug: string; names: string; defaultOpen: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   const [qr, setQr] = useState("");
   const { copied, copy } = useCopy();
-  const guestUrl = typeof window !== "undefined" ? `${window.location.origin}/w/${slug}` : "";
+  const base = typeof window !== "undefined" ? `${window.location.origin}/w/${slug}` : "";
+  const guestUrl = base ? withSource(base, "invite") : "";
   const invitation = `오늘 찍어주신 사진, 저희에게 나눠주세요.\n앱 설치 없이 바로 올릴 수 있어요.\n${guestUrl}`;
 
   useEffect(() => { setOpen(defaultOpen); }, [defaultOpen]);
   useEffect(() => {
-    if (open && guestUrl) QRCode.toDataURL(guestUrl, { width: 1024, margin: 2, color: { dark: "#1d1d1f", light: "#ffffff" } }).then(setQr).catch(() => {});
-  }, [open, guestUrl]);
+    if (open && base) QRCode.toDataURL(withSource(base, "qr"), { width: 1024, margin: 2, color: { dark: "#1d1d1f", light: "#ffffff" } }).then(setQr).catch(() => {});
+  }, [open, base]);
 
   if (!open) {
     return <button className="btn ghost" type="button" onClick={() => setOpen(true)}>하객 초대하기 (링크 · QR)</button>;

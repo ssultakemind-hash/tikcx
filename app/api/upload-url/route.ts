@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { admin, BUCKET, MAX_FILE_BYTES, MAX_FILES_PER_BATCH, weddingBySlug } from "@/lib/supabase";
 import { phase } from "@/lib/dates";
+import { cleanSource } from "@/lib/sources";
 
 type FileReq = { name: string; type: string; size: number; hasThumb: boolean };
 
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
 
     const ins = await db.from("media").insert({
       id, wedding_id: wedding.id, kind, path, thumb_path: thumb ? thumbPath : null,
-      uploader_name: isPro ? "TAKEMIND" : uploader, is_pro: isPro, size_bytes: f.size, device_id: device,
+      uploader_name: isPro ? "TAKEMIND" : uploader, is_pro: isPro, size_bytes: f.size, device_id: device, source: cleanSource(body?.source),
     });
     if (ins.error) { out.push({ error: "업로드 준비에 실패했습니다." }); continue; }
 
