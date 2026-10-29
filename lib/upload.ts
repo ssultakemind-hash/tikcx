@@ -43,6 +43,26 @@ function put(url: string, body: Blob, type: string, onProgress?: (p: number) => 
 export type UploadResult = { ok: number; failed: number; photos: number; videos: number; ids: string[] };
 
 // Remembers, on this phone only, which files this guest uploaded.
+// A random id for this phone, so we can count how many different guests uploaded
+// (names are optional and many people stay "익명 하객").
+export function deviceId(): string {
+  try {
+    let id = localStorage.getItem("tikcx_device");
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem("tikcx_device", id); }
+    return id;
+  } catch { return ""; }
+}
+
+// Counts this phone's first visit to a wedding page once.
+export function countVisit(slug: string) {
+  try {
+    const k = `tikcx_visited_${slug}`;
+    if (localStorage.getItem(k)) return;
+    localStorage.setItem(k, "1");
+  } catch { return; }
+  fetch("/api/visit", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug }) }).catch(() => {});
+}
+
 const mineKey = (slug: string) => `tikcx_mine_${slug}`;
 export function getMine(slug: string): string[] {
   try { return JSON.parse(localStorage.getItem(mineKey(slug)) || "[]"); } catch { return []; }
@@ -58,7 +78,7 @@ export async function uploadFiles(
   const thumbs = await Promise.all(files.map(makeThumb));
   const res = await fetch("/api/upload-url", {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ slug, uploader, adminKey, files: files.map((f, i) => ({ name: f.name, type: f.type, size: f.size, hasThumb: !!thumbs[i] })) }),
+    body: JSON.stringify({ slug, uploader, adminKey, deviceId: deviceId(), files: files.map((f, i) => ({ name: f.name, type: f.type, size: f.size, hasThumb: !!thumbs[i] })) }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "업로드를 시작하지 못했습니다.");

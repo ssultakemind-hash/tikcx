@@ -109,7 +109,7 @@ function TodayList({ list }: { list: W[] }) {
   );
 }
 
-type W = { id: string; slug: string; couple_names: string; wedding_date: string | null; venue: string | null; couple_key: string; cover_url: string | null; photos: number; videos: number; guests: number };
+type W = { id: string; slug: string; couple_names: string; wedding_date: string | null; venue: string | null; couple_key: string; cover_url: string | null; visitors: number; photos: number; videos: number; guests: number };
 
 export default function Admin() {
   const [key, setKey] = useState("");
@@ -206,7 +206,8 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
         <div style={{ minWidth: 0, flex: 1 }}>
           <b>{w.couple_names}</b>
           <p className="muted">{[shortDate(w.wedding_date), w.venue].filter(Boolean).join(" · ")}</p>
-          <p className="muted">사진 {w.photos} · 영상 {w.videos} · 하객 {w.guests}명</p>
+          <p className="muted">사진 {w.photos} · 영상 {w.videos}</p>
+          <p className="muted">방문 {w.visitors}명 · 올린 하객 {w.guests}명{w.visitors > 0 ? ` · 업로드율 ${Math.min(100, Math.round((w.guests / w.visitors) * 100))}%` : ""}</p>
           {w.wedding_date && (() => {
             const p = phase(w.wedding_date);
             return <p className="muted">{p.expired ? "보관 종료" : `업로드 ${shortDate(p.uploadUntil)}까지${p.uploadOpen ? "" : " (마감)"} · 삭제 ${shortDate(p.deleteOn)}`}</p>;

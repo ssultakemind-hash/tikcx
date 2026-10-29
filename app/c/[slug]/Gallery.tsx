@@ -6,7 +6,7 @@ import CoverPicker from "../../CoverPicker";
 import { shortDate, WARN_DAYS, type Phase } from "@/lib/dates";
 
 type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null };
-type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; phase: Phase; cover: string | null; items: Item[] };
+type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; phase: Phase; cover: string | null; guestCount: number; items: Item[] };
 type Filter = "all" | "guest" | "pro" | "video";
 
 function withDownload(url: string) {
@@ -38,7 +38,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
     return {
       photos: items.filter((i) => i.kind === "image").length,
       videos: items.filter((i) => i.kind === "video").length,
-      guests: new Set(items.filter((i) => !i.pro).map((i) => i.from)).size,
+      guests: data?.guestCount ?? new Set(items.filter((i) => !i.pro).map((i) => i.from)).size,
     };
   }, [data]);
 

@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   const db = admin();
   const { data: rows } = await db
     .from("media")
-    .select("id, kind, path, thumb_path, uploader_name, is_pro, created_at")
+    .select("id, kind, path, thumb_path, uploader_name, is_pro, created_at, device_id")
     .eq("wedding_id", wedding.id)
     .eq("uploaded", true)
     .order("created_at", { ascending: false })
@@ -32,6 +32,7 @@ export async function GET(req: Request) {
     wedding: { couple_names: wedding.couple_names, wedding_date: wedding.wedding_date, venue: wedding.venue, guest_gallery: wedding.guest_gallery },
     phase: phase(wedding.wedding_date),
     cover: await coverUrl(wedding.cover_path, 60 * 60 * 6),
+    guestCount: new Set(list.filter((r) => !r.is_pro).map((r) => r.device_id ?? `name:${r.uploader_name}`)).size,
     items: list.map((r) => ({
       id: r.id, kind: r.kind, from: r.uploader_name, pro: r.is_pro, at: r.created_at,
       url: signed.get(r.path) ?? null,

@@ -42,3 +42,11 @@ alter table public.weddings add column if not exists guest_gallery boolean not n
 
 -- 2026-10-29: cover photo shown at the top of guest and couple pages
 alter table public.weddings add column if not exists cover_path text;
+
+-- 2026-10-29: measure upload rate (unique visitors per wedding, uploader device)
+alter table public.weddings add column if not exists visitors integer not null default 0;
+alter table public.media add column if not exists device_id text;
+create or replace function public.inc_visitors(wid uuid) returns void
+language sql security definer set search_path = public
+as $$ update public.weddings set visitors = visitors + 1 where id = wid; $$;
+revoke execute on function public.inc_visitors(uuid) from public, anon, authenticated;

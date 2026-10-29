@@ -17,7 +17,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&text=tikcx.&display=swap" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <footer className="foot"><a href="/privacy">개인정보 안내</a><span>tikcx. × TAKEMIND</span></footer>
+      </body>
     </html>
   );
 }

@@ -13,14 +13,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "관리자 키가 올바르지 않습니다." }, { status: 401 });
   const db = admin();
   const { data: weddings } = await db
-    .from("weddings").select("id, slug, couple_names, wedding_date, venue, couple_key, cover_path, created_at")
+    .from("weddings").select("id, slug, couple_names, wedding_date, venue, couple_key, cover_path, visitors, created_at")
     .order("wedding_date", { ascending: false, nullsFirst: false }).limit(200);
-  const { data: media } = await db.from("media").select("wedding_id, kind, is_pro, uploader_name").eq("uploaded", true).limit(100000);
+  const { data: media } = await db.from("media").select("wedding_id, kind, is_pro, uploader_name, device_id").eq("uploaded", true).limit(100000);
   const stats = new Map<string, { photos: number; videos: number; guests: Set<string> }>();
   media?.forEach((m) => {
     const s = stats.get(m.wedding_id) ?? { photos: 0, videos: 0, guests: new Set<string>() };
     m.kind === "video" ? s.videos++ : s.photos++;
-    if (!m.is_pro) s.guests.add(m.uploader_name);
+    if (!m.is_pro) s.guests.add(m.device_id ?? `name:${m.uploader_name}`);
     stats.set(m.wedding_id, s);
   });
   const covers = new Map<string, string>();

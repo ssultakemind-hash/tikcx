@@ -11,6 +11,7 @@ export async function POST(req: Request) {
   const files: FileReq[] = Array.isArray(body?.files) ? body.files : [];
   const uploader = String(body?.uploader ?? "").trim().slice(0, 30) || "익명 하객";
   const isPro = !!body?.adminKey && body.adminKey === process.env.ADMIN_KEY;
+  const device = typeof body?.deviceId === "string" && /^[0-9a-f-]{36}$/.test(body.deviceId) ? body.deviceId : null;
 
   const wedding = await weddingBySlug(slug);
   if (!wedding) return NextResponse.json({ error: "예식을 찾을 수 없습니다." }, { status: 404 });
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
 
     const ins = await db.from("media").insert({
       id, wedding_id: wedding.id, kind, path, thumb_path: thumb ? thumbPath : null,
-      uploader_name: isPro ? "TAKEMIND" : uploader, is_pro: isPro, size_bytes: f.size,
+      uploader_name: isPro ? "TAKEMIND" : uploader, is_pro: isPro, size_bytes: f.size, device_id: device,
     });
     if (ins.error) { out.push({ error: "업로드 준비에 실패했습니다." }); continue; }
 
