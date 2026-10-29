@@ -50,3 +50,21 @@ create or replace function public.inc_visitors(wid uuid) returns void
 language sql security definer set search_path = public
 as $$ update public.weddings set visitors = visitors + 1 where id = wid; $$;
 revoke execute on function public.inc_visitors(uuid) from public, anon, authenticated;
+
+-- 2026-10-30: guests who are getting married leave their contact (with consent)
+create table if not exists public.leads (
+  id uuid primary key default gen_random_uuid(),
+  wedding_id uuid references public.weddings(id) on delete set null,
+  wedding_label text,
+  name text not null,
+  phone text not null,
+  timing text not null,
+  interests text[] not null default '{}',
+  marketing boolean not null default false,
+  device_id text,
+  status text not null default 'new',
+  memo text,
+  created_at timestamptz not null default now()
+);
+create index if not exists leads_created_idx on public.leads (created_at desc);
+alter table public.leads enable row level security;

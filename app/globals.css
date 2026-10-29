@@ -152,3 +152,14 @@ label.pick input{position:absolute;opacity:0;width:1px;height:1px}
 .doc h2{margin-top:6px}
 .doc ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:15px;line-height:1.6}
 .doc p{font-size:15px;line-height:1.65}
+.card.lead{gap:16px}
+fieldset.plain{border:0;margin:0;padding:0;min-width:0}
+fieldset.plain legend{font-size:13px;font-weight:600;color:var(--muted);padding:0;margin-bottom:8px}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.5;cursor:pointer}
+.check input{width:20px;height:20px;margin-top:1px;flex:none;accent-color:var(--fg)}
+.check small{color:var(--muted);font-size:12px}
+.lead-row{background:var(--fill);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.lead-row .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.lead-row select,.lead-row textarea{font:14px var(--font);border:0;border-radius:10px;background:var(--surface);color:var(--fg);padding:8px 10px}
+.lead-row textarea{width:100%;min-height:40px;resize:vertical}
+.tag-mini{font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--surface)}

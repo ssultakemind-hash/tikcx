@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import QRCode from "qrcode";
 import SaveImageButton from "../SaveImageButton";
 import TableCard from "../TableCard";
+import Leads from "./Leads";
 import { shortUrl, useCopy } from "@/lib/copy";
 import { daysBetween, kstToday, phase, shortDate, WARN_DAYS } from "@/lib/dates";
 import CoverPicker from "../CoverPicker";
@@ -157,6 +158,7 @@ export default function Admin() {
     <main className="wrap wide">
       <div className="brand"><span className="logo" aria-label="tikcx">tikcx<i>.</i></span><small>스튜디오 관리자</small></div>
       <TodayList list={list} />
+      <Leads adminKey={key} />
       <form className="card" onSubmit={create}>
         <h2>새 예식 만들기</h2>
         <div className="field"><label htmlFor="f-names">신랑·신부 이름</label>

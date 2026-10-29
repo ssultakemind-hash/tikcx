@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Uploader from "./Uploader";
 import MyPhotos from "./MyPhotos";
 import Wall from "./Wall";
+import LeadForm from "./LeadForm";
 import { countVisit } from "@/lib/upload";
 
 export default function GuestArea({ slug, uploadOpen, children }: { slug: string; uploadOpen: boolean; children: React.ReactNode }) {
@@ -22,6 +23,7 @@ export default function GuestArea({ slug, uploadOpen, children }: { slug: string
       </section>
       <MyPhotos slug={slug} refresh={refresh} />
       <Wall slug={slug} refresh={refresh} />
+      <LeadForm slug={slug} />
     </>
   );
 }
