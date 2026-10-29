@@ -38,7 +38,7 @@ export default function LeadForm({ slug }: { slug: string }) {
     return (
       <section className="card lead">
         <h2>고마워요. 곧 연락드릴게요</h2>
-        <p className="muted">TAKEMIND에서 남겨주신 번호로 연락드려요. 결혼 준비 응원할게요.</p>
+        <p className="muted">두 분 결혼식에 틱스를 열어드릴 때 남겨주신 번호로 연락드려요. 결혼 준비 응원할게요.</p>
       </section>
     );
   }
@@ -50,7 +50,7 @@ export default function LeadForm({ slug }: { slug: string }) {
           <div className="eyebrow">곧 결혼하세요?</div>
           <h2>두 분의 날도 틱스와 함께해요</h2>
         </div>
-        <p className="muted">결혼 준비 중이라면 연락처를 남겨주세요. 틱스를 무료로 열어드리고, TAKEMIND 예비부부 혜택도 보내드려요.</p>
+        <p className="muted">결혼 준비 중이라면 연락처를 남겨주세요. 두 분 결혼식에도 틱스를 무료로 열어드려요.</p>
         <button className="btn" type="button" onClick={() => setOpen(true)}>결혼 준비 중이에요</button>
       </section>
     );
@@ -75,7 +75,7 @@ export default function LeadForm({ slug }: { slug: string }) {
         </div>
       </fieldset>
       <fieldset className="field plain">
-        <legend>관심 있는 것 (선택)</legend>
+        <legend>준비하면서 고민 중인 것 (선택)</legend>
         <div className="chips">
           {INTERESTS.map((t) => (
             <button key={t} type="button" className="chip" aria-pressed={interests.includes(t)} onClick={() => toggle(t)}>{t}</button>
@@ -85,12 +85,12 @@ export default function LeadForm({ slug }: { slug: string }) {
       <label className="check">
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
         <span><b>[필수]</b> 개인정보 수집·이용 동의<br />
-          <small>이름, 휴대폰 번호, 결혼 예정 시기, 관심 항목을 TAKEMIND가 상담 연락에 써요. 1년 보관 후 지우고, 언제든 삭제를 요청할 수 있어요.</small></span>
+          <small>이름, 휴대폰 번호, 결혼 예정 시기, 고민 중인 항목을 틱스 사용 안내 연락에 써요. 1년 보관 후 지우고, 언제든 삭제를 요청할 수 있어요.</small></span>
       </label>
       <label className="check">
         <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} />
-        <span>[선택] 혜택·이벤트 소식 받기<br />
-          <small>TAKEMIND 예비부부 혜택을 문자나 카카오톡으로 받아요. 언제든 그만 받을 수 있어요.</small></span>
+        <span>[선택] 틱스 소식 받기<br />
+          <small>결혼 준비에 도움 되는 틱스 소식과 혜택을 문자나 카카오톡으로 받아요. 언제든 그만 받을 수 있어요.</small></span>
       </label>
       {error && <p className="err">{error}</p>}
       <button className="btn" type="submit" disabled={busy || !consent || !timing}>{busy ? "보내는 중…" : "남기기"}</button>

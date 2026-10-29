@@ -6,7 +6,7 @@ import { useCopy } from "@/lib/copy";
 type Lead = { id: string; name: string; phone: string; timing: string; interests: string[]; marketing: boolean; status: string; memo: string | null; wedding_label: string | null; created_at: string };
 
 function saveCsv(rows: Lead[]) {
-  const head = ["남긴 날", "이름", "휴대폰", "결혼 예정", "관심", "혜택 수신 동의", "상태", "메모", "어느 예식에서"];
+  const head = ["남긴 날", "이름", "휴대폰", "결혼 예정", "고민 중", "소식 수신 동의", "상태", "메모", "어느 예식에서"];
   const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const body = rows.map((l) => [
     l.created_at.slice(0, 10), l.name, l.phone, l.timing, l.interests.join(" / "), l.marketing ? "동의" : "",
@@ -73,7 +73,7 @@ export default function Leads({ adminKey }: { adminKey: string }) {
           {shown.map((l) => (
             <div key={l.id} className="lead-row">
               <div className="top">
-                <b>{l.name} <span className="tag-mini">{l.timing}</span>{l.marketing && <span className="tag-mini" style={{ marginLeft: 4 }}>혜택 동의</span>}</b>
+                <b>{l.name} <span className="tag-mini">{l.timing}</span>{l.marketing && <span className="tag-mini" style={{ marginLeft: 4 }}>소식 동의</span>}</b>
                 <span className="muted">{l.created_at.slice(5, 10).replace("-", "/")}{l.wedding_label ? ` · ${l.wedding_label} 예식` : ""}</span>
               </div>
               <div className="row">
@@ -83,15 +83,15 @@ export default function Leads({ adminKey }: { adminKey: string }) {
                   {STATUSES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
               </div>
-              {l.interests.length > 0 && <p className="muted">관심: {l.interests.join(", ")}</p>}
-              <textarea aria-label={`${l.name} 메모`} placeholder="메모 (상담 내용 등)" defaultValue={l.memo ?? ""}
+              {l.interests.length > 0 && <p className="muted">고민 중: {l.interests.join(", ")}</p>}
+              <textarea aria-label={`${l.name} 메모`} placeholder="메모 (연락 내용 등)" defaultValue={l.memo ?? ""}
                 onBlur={(e) => e.target.value !== (l.memo ?? "") && patch(l.id, { memo: e.target.value })} />
               <button className="btn ghost small danger" type="button" onClick={() => remove(l.id)}>{armed === l.id ? "한 번 더 누르면 삭제" : "삭제 (본인 요청 시)"}</button>
             </div>
           ))}
         </div>
       )}
-      <p className="fine">남긴 날로부터 1년이 지나면 자동으로 지워져요. 혜택·이벤트 문자는 '혜택 동의' 표시가 있는 사람에게만 보낼 수 있어요.</p>
+      <p className="fine">남긴 날로부터 1년이 지나면 자동으로 지워져요. 홍보 문자는 '소식 동의' 표시가 있는 사람에게만 보낼 수 있어요.</p>
     </section>
   );
 }

@@ -1,5 +1,5 @@
 export const TIMINGS = ["6개월 이내", "6개월~1년", "1년 이후", "아직 미정"] as const;
-export const INTERESTS = ["웨딩 촬영", "본식 스냅", "가족사진", "틱스 사용"] as const;
+export const INTERESTS = ["웨딩홀", "스튜디오 촬영", "드레스", "메이크업", "본식 스냅", "청첩장"] as const;
 export const STATUSES = [
   { id: "new", label: "새로 들어옴" },
   { id: "contacted", label: "연락함" },
