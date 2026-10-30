@@ -124,7 +124,7 @@ export default function Admin() {
   useEffect(() => { try { const s = sessionStorage.getItem("tikcx_admin"); if (s) setKey(s); } catch {} }, []);
 
   const load = useCallback(async (k = key) => {
-    const r = await fetch(`/api/admin/weddings?key=${encodeURIComponent(k)}`, { cache: "no-store" });
+    const r = await fetch("/api/admin/weddings", { cache: "no-store", headers: { "x-admin-key": k } });
     const d = await r.json();
     if (!r.ok) { setError(d.error); setAuthed(false); return; }
     setError(""); setAuthed(true); setList(d.weddings);
@@ -168,8 +168,8 @@ export default function Admin() {
           <input id="f-date" type="date" value={form.wedding_date} onChange={(e) => setForm({ ...form, wedding_date: e.target.value })} /></div>
         <div className="field"><label htmlFor="f-venue">예식장</label>
           <input id="f-venue" placeholder="예: 더채플앳청담" value={form.venue} onChange={(e) => setForm({ ...form, venue: e.target.value })} /></div>
-        <div className="field"><label htmlFor="f-slug">QR 주소 (영문)</label>
-          <input id="f-slug" placeholder="mj-sy-1121" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase() })} required /></div>
+        <div className="field"><label htmlFor="f-slug">QR 주소 (영문, 비워두면 자동)</label>
+          <input id="f-slug" placeholder="mj-sy-1121" value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })} /></div>
         {error && <p className="err">{error}</p>}
         <button className="btn" type="submit">예식 만들기</button>
       </form>
@@ -258,6 +258,7 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
             <div className="panel-head"><span className="pill">어디서 들어왔나</span><span className="muted">방문 → 올린 사람</span></div>
             {w.visitors === 0 ? <p className="muted">아직 방문이 없어요.</p> : (
               <table className="src-table">
+                <thead><tr><th></th><td>방문</td><td>올림</td><td>비율</td></tr></thead>
                 <tbody>
                   {SOURCES.filter((s) => (w.visit_sources[s.id] ?? 0) > 0 || (w.upload_sources[s.id] ?? 0) > 0).map((s) => {
                     const v = w.visit_sources[s.id] ?? 0, u = w.upload_sources[s.id] ?? 0;

@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
 // Studio admin: list (also removes entries older than 1 year).
 export async function GET(req: Request) {
-  if (!isAdmin(new URL(req.url).searchParams.get("key"))) return NextResponse.json({ error: "권한이 없어요." }, { status: 401 });
+  if (!isAdmin(req.headers.get("x-admin-key"))) return NextResponse.json({ error: "권한이 없어요." }, { status: 401 });
   const db = admin();
   const cutoff = new Date(Date.now() - LEAD_KEEP_DAYS * 86400_000).toISOString();
   await db.from("leads").delete().lt("created_at", cutoff);

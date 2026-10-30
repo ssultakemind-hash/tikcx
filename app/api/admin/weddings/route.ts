@@ -10,7 +10,7 @@ function authorized(key: string | null) {
 
 // Studio admin: list weddings with upload counts.
 export async function GET(req: Request) {
-  if (!authorized(new URL(req.url).searchParams.get("key")))
+  if (!authorized(req.headers.get("x-admin-key")))
     return NextResponse.json({ error: "관리자 키가 올바르지 않습니다." }, { status: 401 });
   const db = admin();
   const { data: weddings } = await db
@@ -72,7 +72,9 @@ export async function POST(req: Request) {
   if (!authorized(body?.key ?? null))
     return NextResponse.json({ error: "관리자 키가 올바르지 않습니다." }, { status: 401 });
   const couple = String(body?.couple_names ?? "").trim().slice(0, 40);
-  const slug = String(body?.slug ?? "").trim().toLowerCase();
+  let slug = String(body?.slug ?? "").trim().toLowerCase();
+  // No address typed: make a short one from the date, e.g. 1121-k7f2
+  if (!slug) slug = `${String(body?.wedding_date || "").slice(5).replace("-", "") || "w"}-${Math.random().toString(36).slice(2, 6)}`;
   if (!couple) return NextResponse.json({ error: "신랑·신부 이름을 입력하세요." }, { status: 400 });
   if (!/^[a-z0-9-]{3,40}$/.test(slug))
     return NextResponse.json({ error: "주소는 영문 소문자, 숫자, 하이픈 3~40자로 입력하세요." }, { status: 400 });

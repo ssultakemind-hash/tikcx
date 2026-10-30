@@ -14,7 +14,7 @@
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;line-height:1.5;letter-spacing:-0.01em;
-  -webkit-font-smoothing:antialiased;
+  -webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:break-word;
   padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));
   padding-block:calc(16px + env(safe-area-inset-top,0px)) calc(48px + env(safe-area-inset-bottom,0px))}
 img{max-width:100%}
@@ -182,6 +182,7 @@ body:has(.live) .foot{display:none}
 .live-big{margin:0;font-size:clamp(40px,5.5vw,96px);font-weight:800;letter-spacing:-0.04em;line-height:1.12;white-space:pre-line}
 .live-side{background:#fff;color:#0A0A0A;display:flex;flex-direction:column;justify-content:center;gap:clamp(14px,2vh,28px);padding:clamp(24px,3vw,56px)}
 .live-logo{font-size:clamp(24px,2.2vw,36px)}
+.live-names-side{margin:8px 0 0;color:#6e6e73;font-weight:600;font-size:clamp(14px,1.2vw,20px)}
 .live-title{margin:0;font-size:clamp(28px,2.8vw,48px);font-weight:800;letter-spacing:-0.04em;line-height:1.15}
 .live-sub{margin:0;color:#6e6e73;font-size:clamp(14px,1.2vw,20px);line-height:1.5}
 .live-qr{width:100%;max-width:340px;aspect-ratio:1;border-radius:16px}

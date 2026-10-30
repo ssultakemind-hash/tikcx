@@ -121,24 +121,8 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
 
   const filters: [Filter, string][] = [["all", "전체"], ["guest", "사진"], ["video", "영상"]];
 
-  return (
-    <main className="wrap">
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <div className="brand"><span className="logo" aria-label="tikcx">tikcx<i>.</i></span><small>소중한 순간들을 한곳에</small></div>
-        {fromAdmin && <a className="btn ghost small" href="/admin">← 관리자</a>}
-      </div>
-      {data.phase.daysLeft !== null && data.phase.daysLeft <= WARN_DAYS && data.phase.daysLeft > 0 && data.items.length > 0 && (
-        <section className="card warn">
-          <h2>{data.phase.daysLeft}일 뒤 사진이 삭제돼요</h2>
-          <p>{shortDate(data.phase.deleteOn)}에 모든 사진과 영상이 지워져요. 아래 <b>전체 저장</b>으로 지금 저장해 두세요.</p>
-        </section>
-      )}
-      {data.phase.expired && (
-        <section className="card warn">
-          <h2>보관 기간이 끝났어요</h2>
-          <p>예식 후 30일이 지나 사진과 영상이 삭제됐어요.</p>
-        </section>
-      )}
+  const settingsBlock = (
+    <>
       {!data.phase.expired && <Invite slug={slug} names={data.wedding.couple_names} defaultOpen={data.items.length === 0} />}
       <section className="card setting">
         <div style={{ minWidth: 0 }}>
@@ -160,6 +144,9 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
             onChange={(url) => setData((d) => d && { ...d, cover: url })} />
         </section>
       )}
+    </>
+  );
+  const photosBlock = (
       <section className="card">
         {data.cover && (
           <div className="hero photo" style={{ backgroundImage: `url("${data.cover}")`, aspectRatio: "16 / 10" }}>
@@ -181,6 +168,10 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
             <button key={f} className="chip" type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>{label}</button>
           ))}
         </div>
+        {data.items.length > 0 && !data.ai && <p className="muted">AI 장면 정리는 준비 중이에요.</p>}
+        {data.items.length > 0 && data.ai && sceneCounts.length === 0 && unsorted === 0 && (
+          <p className="muted">AI 장면 정리: 미리보기가 없는 사진({data.items.length}장)이라 정리할 수 없어요.</p>
+        )}
         {data.ai && (sceneCounts.length > 0 || unsorted > 0) && (
           <div className="scenes">
             {sceneCounts.length > 0 && (
@@ -221,7 +212,28 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
           <p className="muted">하객 업로드 {shortDate(data.phase.uploadUntil)}까지 · 앨범 보관 {shortDate(data.phase.deleteOn)}까지</p>
         )}
       </section>
+  );
 
+  return (
+    <main className="wrap">
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="brand"><span className="logo" aria-label="tikcx">tikcx<i>.</i></span><small>소중한 순간들을 한곳에</small></div>
+        {fromAdmin && <a className="btn ghost small" href="/admin">← 관리자</a>}
+      </div>
+      {data.phase.daysLeft !== null && data.phase.daysLeft <= WARN_DAYS && data.phase.daysLeft > 0 && data.items.length > 0 && (
+        <section className="card warn">
+          <h2>{data.phase.daysLeft}일 뒤 사진이 삭제돼요</h2>
+          <p>{shortDate(data.phase.deleteOn)}에 모든 사진과 영상이 지워져요. 아래 <b>전체 저장</b>으로 지금 저장해 두세요.</p>
+        </section>
+      )}
+      {data.phase.expired && (
+        <section className="card warn">
+          <h2>보관 기간이 끝났어요</h2>
+          <p>예식 후 30일이 지나 사진과 영상이 삭제됐어요.</p>
+        </section>
+      )}
+      {/* Before photos arrive: inviting guests comes first. After: the photos come first. */}
+      {data.items.length === 0 ? <>{settingsBlock}{photosBlock}</> : <>{photosBlock}{settingsBlock}</>}
       {cur && (
         <div className="viewer" role="dialog" aria-modal="true" aria-label="크게 보기">
           <button className="close" type="button" onClick={() => setCur(null)}>닫기 ✕</button>

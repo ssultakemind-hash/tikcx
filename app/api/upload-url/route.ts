@@ -3,6 +3,8 @@ import { admin, BUCKET, MAX_FILE_BYTES, MAX_FILES_PER_BATCH, weddingBySlug } fro
 import { phase } from "@/lib/dates";
 import { cleanSource } from "@/lib/sources";
 
+export const maxDuration = 60;
+
 type FileReq = { name: string; type: string; size: number; hasThumb: boolean };
 
 // Issues one-time signed upload URLs so files go straight from the phone to storage.
@@ -22,32 +24,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `한 번에 1~${MAX_FILES_PER_BATCH}개까지 올릴 수 있습니다.` }, { status: 400 });
 
   const db = admin();
-  const out = [];
-  for (const f of files) {
+  // Prepare all files at once (was one by one: 50 photos could take too long).
+  const out = await Promise.all(files.map(async (f) => {
     const kind = f.type?.startsWith("video/") ? "video" : f.type?.startsWith("image/") ? "image" : null;
-    if (!kind) { out.push({ error: "사진이나 영상만 올릴 수 있습니다." }); continue; }
-    if (!(f.size > 0) || f.size > MAX_FILE_BYTES) { out.push({ error: "파일당 50MB까지 올릴 수 있습니다." }); continue; }
+    if (!kind) { return { error: "사진이나 영상만 올릴 수 있습니다." }; }
+    if (!(f.size > 0) || f.size > MAX_FILE_BYTES) { return { error: "파일당 50MB까지 올릴 수 있습니다." }; }
 
     const id = crypto.randomUUID();
     const ext = (f.name.split(".").pop() || (kind === "video" ? "mp4" : "jpg")).toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 5);
     const path = `${wedding.id}/${id}.${ext}`;
     const thumbPath = f.hasThumb ? `${wedding.id}/thumb_${id}.jpg` : null;
 
-    const main = await db.storage.from(BUCKET).createSignedUploadUrl(path);
-    if (main.error) { out.push({ error: "업로드 준비에 실패했습니다." }); continue; }
-    let thumb = null;
-    if (thumbPath) {
-      const t = await db.storage.from(BUCKET).createSignedUploadUrl(thumbPath);
-      if (!t.error) thumb = t.data.signedUrl;
-    }
+    const [main, t] = await Promise.all([
+      db.storage.from(BUCKET).createSignedUploadUrl(path),
+      thumbPath ? db.storage.from(BUCKET).createSignedUploadUrl(thumbPath) : Promise.resolve(null),
+    ]);
+    if (main.error) { return { error: "업로드 준비에 실패했습니다." }; }
+    const thumb = t && !t.error ? t.data.signedUrl : null;
 
     const ins = await db.from("media").insert({
       id, wedding_id: wedding.id, kind, path, thumb_path: thumb ? thumbPath : null,
       uploader_name: isPro ? "TAKEMIND" : uploader, is_pro: isPro, size_bytes: f.size, device_id: device, source: cleanSource(body?.source),
     });
-    if (ins.error) { out.push({ error: "업로드 준비에 실패했습니다." }); continue; }
+    if (ins.error) { return { error: "업로드 준비에 실패했습니다." }; }
 
-    out.push({ id, uploadUrl: main.data.signedUrl, thumbUrl: thumb });
-  }
+    return { id, uploadUrl: main.data.signedUrl, thumbUrl: thumb };
+  }));
   return NextResponse.json({ files: out });
 }

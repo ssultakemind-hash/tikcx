@@ -11,15 +11,19 @@ export default function Uploader({ slug, adminKey, onDone }: { slug: string; adm
   const [progress, setProgress] = useState({ done: 0, total: 0, frac: 0 });
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState("");
-  const [skipped, setSkipped] = useState(0);
+  const [note, setNote] = useState("");
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const all = Array.from(e.target.files ?? []);
     e.target.value = "";
     if (!all.length) return;
-    const ok = all.filter((f) => f.size <= MAX_BYTES).slice(0, MAX);
-    setSkipped(all.length - ok.length);
-    if (!ok.length) { setError("50MB가 넘는 파일은 올릴 수 없어요. 짧은 영상으로 나눠 올려주세요."); return; }
+    const small = all.filter((f) => f.size <= MAX_BYTES);
+    const ok = small.slice(0, MAX);
+    setNote([
+      all.length > small.length ? `50MB가 넘는 파일 ${all.length - small.length}개는 빼고 올려요. (긴 영상은 30초 이내로 잘라주세요)` : "",
+      small.length > MAX ? `한 번에 ${MAX}개까지라 ${small.length - MAX}개는 남았어요. 다 올라가면 '더 올리기'로 이어서 올려주세요.` : "",
+    ].filter(Boolean).join(" "));
+    if (!ok.length) { setError("50MB가 넘는 파일은 올릴 수 없어요. 영상은 30초 이내로 잘라서 올려주세요."); return; }
     setError(""); setState("busy"); setProgress({ done: 0, total: ok.length, frac: 0 });
     try {
       const r = await uploadFiles(slug, ok, name, (done, total, frac) => setProgress({ done, total, frac }), adminKey);
@@ -30,7 +34,7 @@ export default function Uploader({ slug, adminKey, onDone }: { slug: string; adm
     }
   }
 
-  const pct = progress.total ? ((progress.done + (progress.done < progress.total ? progress.frac : 0)) / progress.total) * 100 : 0;
+  const pct = progress.total ? Math.min(100, ((progress.done + progress.frac) / progress.total) * 100) : 0;
 
   if (state === "done" && result) {
     return (
@@ -41,10 +45,9 @@ export default function Uploader({ slug, adminKey, onDone }: { slug: string; adm
           {result.photos ? `사진 ${result.photos}장` : ""}{result.photos && result.videos ? ", " : ""}{result.videos ? `영상 ${result.videos}개` : ""}
           {result.ok ? "가 두 분의 앨범에 담겼어요." : ""}
         </p>
-        {(result.failed > 0 || skipped > 0) && (
-          <p className="err">{result.failed + skipped}개는 올리지 못했어요. 와이파이나 파일 크기를 확인하고 다시 올려주세요.</p>
-        )}
-        <button className="btn ghost" type="button" onClick={() => { setState("idle"); setResult(null); }}>더 올리기</button>
+        {result.failed > 0 && <p className="err">{result.failed}개는 인터넷 연결 문제로 올리지 못했어요. 다시 올려주세요.</p>}
+        {note && <p className="notice">{note}</p>}
+        <button className="btn ghost" type="button" onClick={() => { setState("idle"); setResult(null); setNote(""); }}>더 올리기</button>
       </div>
     );
   }
@@ -60,7 +63,7 @@ export default function Uploader({ slug, adminKey, onDone }: { slug: string; adm
       )}
       {state === "busy" ? (
         <div>
-          <p className="muted" style={{ marginBottom: 8 }}>올리는 중… {Math.min(progress.done + 1, progress.total)} / {progress.total} · 화면을 닫지 말아주세요</p>
+          <p className="muted" style={{ marginBottom: 8 }}>올리는 중… {progress.done} / {progress.total} 완료 · 화면을 닫지 말아주세요</p>
           <div className="bar"><i style={{ width: `${pct}%` }} /></div>
         </div>
       ) : (

@@ -54,7 +54,7 @@ export default async function GuestPage({ params }: { params: Promise<{ slug: st
               <div className="eyebrow">와주셔서 고마워요</div>
               <h1>사진 올리기가<br />마감됐어요</h1>
             </div>
-            <p className="muted">보내주신 사진은 두 사람에게 잘 전해졌어요. 아래에서 모두의 사진을 볼 수 있어요.</p>
+            <p className="muted">보내주신 사진은 두 사람에게 잘 전해졌어요.{w.guest_gallery ? " 아래에서 모두의 사진을 볼 수 있어요." : ""}</p>
           </>
         )}
       </GuestArea>

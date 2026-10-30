@@ -87,7 +87,7 @@ export default function LiveScreen({ slug, names }: { slug: string; names: strin
         )}
       </div>
       <aside className="live-side">
-        <div className="logo live-logo">tikcx<i>.</i></div>
+        <div><div className="logo live-logo">tikcx<i>.</i></div><p className="live-names-side">{names}</p></div>
         <div>
           <p className="live-title">찍은 사진,<br />지금 올려주세요</p>
           <p className="live-sub">{enabled ? "올리면 바로 이 화면에 나와요" : "원본 그대로 두 사람에게 전해져요"}</p>

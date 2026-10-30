@@ -30,7 +30,7 @@ export default function Leads({ adminKey }: { adminKey: string }) {
   const { copied, copy } = useCopy();
 
   const load = useCallback(async () => {
-    const r = await fetch(`/api/leads?key=${encodeURIComponent(adminKey)}`, { cache: "no-store" });
+    const r = await fetch("/api/leads", { cache: "no-store", headers: { "x-admin-key": adminKey } });
     const d = await r.json().catch(() => ({}));
     setLeads(d.leads ?? []);
   }, [adminKey]);

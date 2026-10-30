@@ -75,6 +75,9 @@ const mineKey = (slug: string) => `tikcx_mine_${slug}`;
 export function getMine(slug: string): string[] {
   try { return JSON.parse(localStorage.getItem(mineKey(slug)) || "[]"); } catch { return []; }
 }
+export function removeMine(slug: string, id: string) {
+  try { localStorage.setItem(mineKey(slug), JSON.stringify(getMine(slug).filter((x) => x !== id))); } catch {}
+}
 export function addMine(slug: string, ids: string[]) {
   try { localStorage.setItem(mineKey(slug), JSON.stringify([...ids, ...getMine(slug)].slice(0, 500))); } catch {}
 }
@@ -91,18 +94,27 @@ export async function uploadFiles(
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "업로드를 시작하지 못했습니다.");
 
-  const okIds: string[] = []; let failed = 0, photos = 0, videos = 0;
-  for (let i = 0; i < files.length; i++) {
-    const slot = data.files[i];
-    if (!slot?.uploadUrl) { failed++; onProgress(i + 1, files.length, 1); continue; }
-    try {
-      await put(slot.uploadUrl, files[i], files[i].type, (p) => onProgress(i, files.length, p));
-      if (slot.thumbUrl && thumbs[i]) await put(slot.thumbUrl, thumbs[i]!, "image/jpeg").catch(() => {});
-      okIds.push(slot.id);
-      files[i].type.startsWith("video/") ? videos++ : photos++;
-    } catch { failed++; }
-    onProgress(i + 1, files.length, 1);
+  // Sends 3 files at a time (faster on venue Wi-Fi/LTE than one by one).
+  const okIds: string[] = []; let failed = 0, photos = 0, videos = 0, done = 0;
+  const inflight = new Map<number, number>();
+  const report = () => onProgress(done, files.length, [...inflight.values()].reduce((a, b) => a + b, 0));
+  let next = 0;
+  async function worker() {
+    while (next < files.length) {
+      const i = next++;
+      const slot = data.files[i];
+      if (!slot?.uploadUrl) { failed++; done++; report(); continue; }
+      inflight.set(i, 0);
+      try {
+        await put(slot.uploadUrl, files[i], files[i].type, (p) => { inflight.set(i, p); report(); });
+        if (slot.thumbUrl && thumbs[i]) await put(slot.thumbUrl, thumbs[i]!, "image/jpeg").catch(() => {});
+        okIds.push(slot.id);
+        files[i].type.startsWith("video/") ? videos++ : photos++;
+      } catch { failed++; }
+      inflight.delete(i); done++; report();
+    }
   }
+  await Promise.all([worker(), worker(), worker()]);
   if (okIds.length) await fetch("/api/confirm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, ids: okIds }) });
   if (!adminKey) addMine(slug, okIds);
   return { ok: okIds.length, failed, photos, videos, ids: okIds };
