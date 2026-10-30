@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { admin, BUCKET, MAX_FILE_BYTES, MAX_FILES_PER_BATCH, weddingBySlug } from "@/lib/supabase";
 import { phase } from "@/lib/dates";
 import { cleanSource } from "@/lib/sources";
+import { isProKey } from "@/lib/proToken";
 
 export const maxDuration = 60;
 const PER_DEVICE = 300;
@@ -15,11 +16,12 @@ export async function POST(req: Request) {
   const slug: string = body?.slug ?? "";
   const files: FileReq[] = Array.isArray(body?.files) ? body.files : [];
   const uploader = String(body?.uploader ?? "").trim().slice(0, 30) || "익명 하객";
-  const isPro = !!body?.adminKey && body.adminKey === process.env.ADMIN_KEY;
   const device = typeof body?.deviceId === "string" && /^[0-9a-f-]{36}$/.test(body.deviceId) ? body.deviceId : null;
 
   const wedding = await weddingBySlug(slug);
   if (!wedding) return NextResponse.json({ error: "예식을 찾을 수 없습니다." }, { status: 404 });
+  // admin key, or the photographer link key for this wedding
+  const isPro = isProKey(wedding.id, body?.adminKey);
   if (!isPro && !phase(wedding.wedding_date).uploadOpen)
     return NextResponse.json({ error: "사진 올리기 기간이 끝났어요." }, { status: 403 });
   if (files.length === 0 || files.length > MAX_FILES_PER_BATCH)

@@ -113,7 +113,7 @@ function TodayList({ list }: { list: W[] }) {
   );
 }
 
-type W = { id: string; slug: string; couple_names: string; wedding_date: string | null; venue: string | null; couple_key: string; cover_url: string | null; visitors: number; visit_sources: Record<string, number>; upload_sources: Record<string, number>; photos: number; videos: number; guests: number };
+type W = { id: string; slug: string; pro_token: string | null; couple_names: string; wedding_date: string | null; venue: string | null; couple_key: string; cover_url: string | null; visitors: number; visit_sources: Record<string, number>; upload_sources: Record<string, number>; photos: number; videos: number; guests: number };
 
 export default function Admin() {
   const [key, setKey] = useState("");
@@ -257,6 +257,8 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
             </div>
           </div>
 
+          {w.pro_token && <ProLink url={`${origin}/p/${w.slug}?t=${w.pro_token}`} />}
+
           <div className="panel">
             <div className="panel-head"><span className="pill">어디서 들어왔나</span><span className="muted">방문 → 올린 사람</span></div>
             {w.visitors === 0 ? <p className="muted">아직 방문이 없어요.</p> : (
@@ -293,4 +295,22 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
     setDeleting(false); setArmed(false);
     if (r.ok) onDeleted(); else setDelError((await r.json().catch(() => ({}))).error || "삭제하지 못했어요.");
   }
+}
+
+// Photographer's upload link: open it on the sub-shooter's phone (scan the QR) and upload during the wedding.
+function ProLink({ url }: { url: string }) {
+  const [qr, setQr] = useState("");
+  const { copied, copy } = useCopy();
+  useEffect(() => { QRCode.toDataURL(url, { width: 600, margin: 2 }).then(setQr).catch(() => {}); }, [url]);
+  return (
+    <div className="panel">
+      <div className="panel-head"><span className="pill">작가 업로드</span><span className="muted">서브 작가 폰으로 실시간 스냅 올리기</span></div>
+      <p className="muted">서브 작가 폰 카메라로 이 QR을 찍으면 작가 전용 업로드 화면이 열려요. 올린 사진은 TAKEMIND 표시로 대기실 화면과 앨범에 바로 들어가요. 하객에게는 보내지 마세요.</p>
+      {qr && <img className="qr" src={qr} alt="작가 업로드 QR" style={{ maxWidth: 180 }} />}
+      <div className="row two">
+        <button className="btn ghost small" type="button" onClick={() => copy(url, "pro")}>{copied === "pro" ? "복사됨" : "작가 링크 복사"}</button>
+        <a className="btn ghost small" href={url} target="_blank" rel="noopener">열어보기</a>
+      </div>
+    </div>
+  );
 }

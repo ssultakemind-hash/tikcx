@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { admin, BUCKET } from "@/lib/supabase";
 import { removeScenes } from "@/lib/scenesServer";
+import { proToken } from "@/lib/proToken";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export async function GET(req: Request) {
     weddings: (weddings ?? []).map(({ cover_path, ...w }) => {
       const s = stats.get(w.id);
       const upload_sources = Object.fromEntries([...(s?.bySource ?? new Map<string, Set<string>>())].map(([k, v]) => [k, v.size]));
-      return { ...w, upload_sources, visit_sources: w.visit_sources ?? {}, cover_url: cover_path ? covers.get(cover_path) ?? null : null, photos: s?.photos ?? 0, videos: s?.videos ?? 0, guests: s?.guests.size ?? 0 };
+      return { ...w, pro_token: proToken(w.id), upload_sources, visit_sources: w.visit_sources ?? {}, cover_url: cover_path ? covers.get(cover_path) ?? null : null, photos: s?.photos ?? 0, videos: s?.videos ?? 0, guests: s?.guests.size ?? 0 };
     }),
   });
 }
