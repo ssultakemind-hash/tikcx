@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Invite from "./Invite";
 import SaveAll from "./SaveAll";
 import CoverPicker from "../../CoverPicker";
@@ -19,7 +19,6 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [cur, setCur] = useState<Item | null>(null);
-  const [original, setOriginal] = useState(false);
   const [armed, setArmed] = useState(false);
   const [scene, setScene] = useState<string | null>(null);
   const [sorting, setSorting] = useState<{ done: number; total: number } | null>(null);
@@ -79,6 +78,27 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
     const r = await fetch("/api/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k, guest_gallery: next }) });
     if (r.ok) setData((d) => d && { ...d, wedding: { ...d.wedding, guest_gallery: next } });
     setSaving(false);
+  }
+
+  // Phone: share sheet so "이미지 저장 / 비디오 저장" puts it straight into Photos.
+  // Computer (or if sharing fails): normal download.
+  const [busySave, setBusySave] = useState(false);
+  async function saveCurrent() {
+    if (!cur?.url || busySave) return;
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (mobile && navigator.canShare) {
+      setBusySave(true);
+      try {
+        const blob = await fetch(cur.url).then((r) => r.blob());
+        const ext = cur.kind === "video" ? (blob.type.includes("quicktime") ? "mov" : "mp4") : (blob.type.includes("png") ? "png" : "jpg");
+        const file = new File([blob], `tikcx-${cur.id.slice(0, 8)}.${ext}`, { type: blob.type });
+        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); setBusySave(false); return; }
+      } catch (e) {
+        if ((e as Error)?.name === "AbortError") { setBusySave(false); return; }
+      }
+      setBusySave(false);
+    }
+    location.href = withDownload(cur.url);
   }
 
   async function remove() {
@@ -180,7 +200,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
           <div className="grid">
             {list.map((it) => (
               <button key={it.id} className="tile" type="button" aria-label={`${it.from}의 ${it.kind === "video" ? "영상" : "사진"} 크게 보기`}
-                onClick={() => { setCur(it); setOriginal(false); }}>
+                onClick={() => setCur(it)}>
                 {it.thumb ? <img src={it.thumb} alt="" loading="lazy" />
                   : it.kind === "video" ? <video src={it.url ?? undefined} muted preload="metadata" playsInline />
                   : <img src={it.url ?? undefined} alt="" loading="lazy" />}
@@ -201,41 +221,15 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
           <div className="stage">
             {cur.kind === "video"
               ? <video src={cur.url ?? undefined} controls playsInline />
-              : original ? <img src={cur.url ?? undefined} alt="" /> : <Watermarked src={cur.url ?? ""} />}
+              : <img src={cur.url ?? undefined} alt="" />}
           </div>
-          <p className="vinfo">{cur.from} · {cur.kind === "video" ? "영상" : original ? "원본 화질" : "무료 보기: 720p + 워터마크"}</p>
-          {cur.kind === "image" && (
-            <div className="row">
-              <button className="btn vbtn" type="button" onClick={() => setOriginal(false)}>무료 보기</button>
-              <button className="btn vbtn solid" type="button" onClick={() => setOriginal(true)}>원본 보기</button>
-            </div>
-          )}
+          <p className="vinfo">{cur.from} · {cur.kind === "video" ? "영상" : "사진"} · 원본 화질</p>
           <div className="row">
-            {cur.url && <a className="btn vbtn" href={withDownload(cur.url)}>원본 저장</a>}
-            <button className="btn vbtn danger" type="button" onClick={remove}>{armed ? "한 번 더 누르면 삭제됩니다" : "삭제"}</button>
+            <button className="btn vbtn solid" type="button" onClick={saveCurrent} disabled={busySave}>{busySave ? "준비 중…" : "저장"}</button>
+            <button className="btn vbtn danger" type="button" onClick={remove}>{armed ? "한 번 더 누르면 삭제" : "삭제"}</button>
           </div>
         </div>
       )}
     </main>
   );
-}
-
-function Watermarked({ src }: { src: string }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const img = new Image();
-    img.onload = () => {
-      const c = ref.current; if (!c) return;
-      const s = Math.min(1, 720 / img.naturalWidth);
-      c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
-      const x = c.getContext("2d")!;
-      x.drawImage(img, 0, 0, c.width, c.height);
-      x.save(); x.translate(c.width / 2, c.height / 2); x.rotate(-Math.PI / 7);
-      x.fillStyle = "rgba(255,255,255,.38)"; x.font = `700 ${Math.round(c.width / 9)}px sans-serif`; x.textAlign = "center";
-      for (let y = -c.height; y < c.height; y += c.width / 4) x.fillText("tikcx", 0, y);
-      x.restore();
-    };
-    img.src = src;
-  }, [src]);
-  return <canvas ref={ref} />;
 }
