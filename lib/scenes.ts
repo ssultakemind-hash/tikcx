@@ -12,9 +12,14 @@ export const SCENES = [
   { key: "song", label: "축가" },
   { key: "rings", label: "예물 교환" },
   { key: "march", label: "행진·퇴장" },
+  { key: "pyebaek", label: "폐백" },
+  { key: "greeting", label: "하객 인사" },
   { key: "group", label: "단체사진" },
   { key: "guests", label: "하객" },
-  { key: "party", label: "식사·피로연" },
+  { key: "party", label: "식사" },
+  { key: "decor", label: "데코·플라워" },
+  { key: "venue", label: "예식장·공간" },
+  { key: "detail", label: "소품·디테일" },
   { key: "other", label: "기타" },
 ] as const;
 

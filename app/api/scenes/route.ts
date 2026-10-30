@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { admin, BUCKET, weddingBySlug } from "@/lib/supabase";
-import { classify, readScenes, writeScenes } from "@/lib/scenesServer";
+import { classify, MANUAL, manualIds, readScenes, writeScenes } from "@/lib/scenesServer";
+import { SCENE_KEYS } from "@/lib/scenes";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -23,7 +24,11 @@ export async function POST(req: Request) {
   const { data: rows } = await db.from("media").select("id, thumb_path")
     .eq("wedding_id", wedding.id).eq("uploaded", true).not("thumb_path", "is", null)
     .order("created_at", { ascending: true }).limit(3000);
-  const scenes = body?.reset === true ? {} : await readScenes(wedding.id);
+  const saved = await readScenes(wedding.id);
+  // "다시 정리": start over, but keep the photos the couple moved by hand.
+  const scenes: Record<string, unknown> = body?.reset === true
+    ? Object.fromEntries([[MANUAL, manualIds(saved)], ...manualIds(saved).filter((id) => saved[id]).map((id) => [id, saved[id]])])
+    : saved;
   const todo = (rows ?? []).filter((r) => !scenes[r.id]);
   const batch = todo.slice(0, PER_REQUEST * PARALLEL);
 
@@ -47,4 +52,19 @@ export async function POST(req: Request) {
 
   const left = (rows ?? []).filter((r) => !scenes[r.id]).length;
   return NextResponse.json({ done: (rows ?? []).length - left, left, scenes });
+}
+
+// Couple moves one photo to another scene by hand.
+export async function PATCH(req: Request) {
+  const body = await req.json().catch(() => null);
+  const wedding = await weddingBySlug(String(body?.slug ?? ""));
+  if (!wedding || body?.k !== wedding.couple_key) return NextResponse.json({ error: "링크가 올바르지 않습니다." }, { status: 403 });
+  const id = String(body?.id ?? "");
+  const scene = String(body?.scene ?? "");
+  if (!id || !SCENE_KEYS.includes(scene)) return NextResponse.json({ error: "장면을 다시 골라주세요." }, { status: 400 });
+  const scenes = await readScenes(wedding.id);
+  scenes[id] = scene;
+  scenes[MANUAL] = [...new Set([...manualIds(scenes), id])];
+  await writeScenes(wedding.id, scenes);
+  return NextResponse.json({ ok: true });
 }

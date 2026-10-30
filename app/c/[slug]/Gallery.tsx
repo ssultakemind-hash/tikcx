@@ -111,6 +111,15 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
     }
   }
 
+  // Couple corrects the AI: move this photo to another scene (kept even after "다시 정리").
+  async function moveScene(next: string) {
+    if (!cur || !next) return;
+    const id = cur.id;
+    setCur({ ...cur, scene: next });
+    setData((d) => d && { ...d, items: d.items.map((i) => (i.id === id ? { ...i, scene: next } : i)) });
+    await fetch("/api/scenes", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k, id, scene: next }) }).catch(() => {});
+  }
+
   async function remove() {
     if (!cur) return;
     if (!armed) { setArmed(true); setTimeout(() => setArmed(false), 3000); return; }
@@ -263,6 +272,15 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
               : <img src={cur.url ?? undefined} alt="" />}
           </div>
           <p className="vinfo">{cur.from} · {cur.kind === "video" ? "영상" : "사진"} · 원본 화질</p>
+          {data.ai && cur.canScene && (
+            <label className="scene-pick">
+              <span>장면</span>
+              <select value={cur.scene ?? ""} onChange={(e) => moveScene(e.target.value)} aria-label="장면 바꾸기">
+                {!cur.scene && <option value="">아직 정리 안 됨</option>}
+                {SCENES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+              </select>
+            </label>
+          )}
           <div className="row">
             <button className="btn vbtn solid" type="button" onClick={saveCurrent} disabled={busySave}>{busySave ? "준비 중…" : "저장"}</button>
             <button className="btn vbtn danger" type="button" onClick={remove}>{armed ? "한 번 더 누르면 삭제" : "삭제"}</button>
