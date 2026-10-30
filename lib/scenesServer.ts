@@ -39,26 +39,45 @@ party = food, banquet, reception hall, after-party
 other = anything else (venue, decorations, blurry, objects)
 Answer with ONLY a JSON array of labels, one per photo, e.g. ["bride","guests"].`;
 
-// Sends a few photo previews in one request and returns one label per photo.
-export async function classify(urls: string[]): Promise<string[]> {
+export class ClassifyError extends Error {}
+
+// Sends a few photo previews (as image data, not links) in one request and returns
+// one label per photo. Throws ClassifyError if the answer can't be read, so the
+// photos stay unsorted and can be retried instead of all becoming "기타".
+export async function classify(thumbPaths: string[]): Promise<string[]> {
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) throw new Error("NO_KEY");
+  if (!key) throw new ClassifyError("NO_KEY");
+  const store = admin().storage.from(BUCKET);
+  const images = await Promise.all(thumbPaths.map(async (p) => {
+    const { data } = await store.download(p);
+    if (!data) return null;
+    return Buffer.from(await data.arrayBuffer()).toString("base64");
+  }));
   const content = [
-    ...urls.flatMap((url, i) => [
+    ...images.flatMap((b64, i) => b64 ? [
       { type: "text", text: `Photo ${i + 1}:` },
-      { type: "image", source: { type: "url", url } },
-    ]),
+      { type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } },
+    ] : [{ type: "text", text: `Photo ${i + 1}: (missing)` }]),
     { type: "text", text: PROMPT },
   ];
-  const r = await fetch("https://api.anthropic.com/v1/messages", {
+  const base = process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com";
+  const r = await fetch(`${base}/v1/messages`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" },
-    body: JSON.stringify({ model: MODEL, max_tokens: 300, messages: [{ role: "user", content }] }),
+    body: JSON.stringify({ model: MODEL, max_tokens: 400, messages: [{ role: "user", content }] }),
   });
-  if (!r.ok) throw new Error(`AI ${r.status}: ${(await r.text()).slice(0, 300)}`);
+  if (!r.ok) throw new ClassifyError(`AI ${r.status}: ${(await r.text()).slice(0, 200)}`);
   const d = await r.json();
   const text: string = (d.content ?? []).map((c: { text?: string }) => c.text ?? "").join("");
+  // Read labels in order, tolerating code fences, capitals or extra words around them.
   let labels: string[] = [];
-  try { labels = JSON.parse(text.slice(text.indexOf("["), text.lastIndexOf("]") + 1)); } catch { labels = []; }
-  return urls.map((_, i) => (SCENE_KEYS.includes(labels[i]) ? labels[i] : "other"));
+  try {
+    const arr = JSON.parse(text.slice(text.indexOf("["), text.lastIndexOf("]") + 1));
+    if (Array.isArray(arr)) labels = arr.map((x) => String(x).trim().toLowerCase());
+  } catch { /* fall back below */ }
+  if (labels.length < thumbPaths.length)
+    labels = [...text.toLowerCase().matchAll(/[a-z_]+/g)].map((m) => m[0]).filter((w) => SCENE_KEYS.includes(w));
+  labels = labels.map((l) => (SCENE_KEYS.includes(l) ? l : "other"));
+  if (labels.length < thumbPaths.length) throw new ClassifyError(`AI answer unreadable: ${text.slice(0, 200)}`);
+  return thumbPaths.map((_, i) => (images[i] ? labels[i] : "other"));
 }

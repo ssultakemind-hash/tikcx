@@ -45,16 +45,19 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
   const unsorted = (data?.items ?? []).filter((i) => i.canScene && !i.scene).length;
 
   // Asks the AI to sort photos into scenes, one batch per call, until none are left.
-  async function sortScenes() {
+  async function sortScenes(reset = false) {
     if (sorting) return;
     setSortError("");
     const total = (data?.items ?? []).filter((i) => i.canScene).length;
-    setSorting({ done: total - unsorted, total });
+    setSorting({ done: reset ? 0 : total - unsorted, total });
+    if (reset) setScene(null);
+    let first = true;
     for (let guard = 0; guard < 300; guard++) {
-      const r = await fetch("/api/scenes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k }) });
+      const r = await fetch("/api/scenes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k, reset: reset && first }) });
+      first = false;
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) { setSortError(d.error || "장면 정리를 하지 못했어요."); break; }
-      setData((cur) => cur && { ...cur, items: cur.items.map((i) => ({ ...i, scene: d.scenes?.[i.id] ?? i.scene })) });
+      if (!r.ok) { setSortError((d.error || "장면 정리를 하지 못했어요.") + (d.detail ? ` (원인: ${d.detail.slice(0, 120)})` : "")); break; }
+      setData((cur) => cur && { ...cur, items: cur.items.map((i) => ({ ...i, scene: d.scenes?.[i.id] ?? null })) });
       setSorting({ done: d.done, total: d.done + d.left });
       if (!d.left) break;
     }
@@ -186,8 +189,13 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
               </div>
             )}
             {unsorted > 0 && (
-              <button className="btn ghost small" type="button" onClick={sortScenes} disabled={!!sorting}>
+              <button className="btn ghost small" type="button" onClick={() => sortScenes()} disabled={!!sorting}>
                 {sorting ? `AI가 장면을 정리하는 중… ${sorting.done}/${sorting.total}` : sceneCounts.length ? `새 사진 ${unsorted}장 장면 정리하기` : `AI로 장면별 정리하기 (${unsorted}장)`}
+              </button>
+            )}
+            {unsorted === 0 && sceneCounts.length > 0 && (
+              <button className="btn ghost small" type="button" onClick={() => sortScenes(true)} disabled={!!sorting}>
+                {sorting ? `AI가 장면을 다시 정리하는 중… ${sorting.done}/${sorting.total}` : "장면 다시 정리하기"}
               </button>
             )}
             {sortError && <p className="notice">{sortError}</p>}
