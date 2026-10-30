@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { siteOrigin } from "@/lib/site";
 import QRCode from "qrcode";
 import SaveImageButton from "../SaveImageButton";
 import TableCard from "../TableCard";
@@ -69,7 +70,7 @@ function todosFor(list: W[], origin: string): Todo[] {
 function TodayList({ list }: { list: W[] }) {
   const { copied, copy } = useCopy();
   const [sent, setSent] = useState<Record<string, boolean>>({});
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = siteOrigin();
   const todos = todosFor(list, origin);
   const key = (t: Todo) => `tikcx_sent_${t.w.id}_${t.type}`;
 
@@ -193,7 +194,7 @@ function WeddingRow({ w, adminKey, expanded, onToggle, onDeleted }: { w: W; admi
   const [armed, setArmed] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [delError, setDelError] = useState("");
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = siteOrigin();
   const guestUrl = `${origin}/w/${w.slug}`;
   const coupleUrl = `${origin}/c/${w.slug}?k=${w.couple_key}`;
 

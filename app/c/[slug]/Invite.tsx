@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { siteOrigin } from "@/lib/site";
 import QRCode from "qrcode";
 import SaveImageButton from "../../SaveImageButton";
 import { useCopy } from "@/lib/copy";
@@ -10,7 +11,7 @@ export default function Invite({ slug, names, defaultOpen }: { slug: string; nam
   const [open, setOpen] = useState(defaultOpen);
   const [qr, setQr] = useState("");
   const { copied, copy } = useCopy();
-  const base = typeof window !== "undefined" ? `${window.location.origin}/w/${slug}` : "";
+  const base = typeof window !== "undefined" ? `${siteOrigin()}/w/${slug}` : "";
   const guestUrl = base ? withSource(base, "invite") : "";
   const invitation = `오늘 찍어주신 사진, 저희에게 나눠주세요.\n앱 설치 없이 바로 올릴 수 있어요.\n${guestUrl}`;
 

@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { siteOrigin } from "@/lib/site";
 import Invite from "./Invite";
 import SaveAll from "./SaveAll";
 import CoverPicker from "../../CoverPicker";
@@ -222,7 +223,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
           <SaveAll key={`${filter}-${scene}`} slug={slug} items={list}
             label={[scene ? sceneLabel(scene) : "", filter === "guest" ? "사진" : filter === "video" ? "영상" : ""].filter(Boolean).join(" ") || undefined}
             fileTag={[scene ?? "", filter === "guest" ? "photo" : filter === "video" ? "video" : ""].filter(Boolean).join("-")}
-            albumUrl={typeof window !== "undefined" ? window.location.href.replace(/&from=admin/, "") : undefined} />
+            albumUrl={typeof window !== "undefined" ? siteOrigin() + window.location.pathname + window.location.search.replace(/&from=admin/, "") : undefined} />
         )}
         {list.length === 0 ? (
           <div className="empty">아직 올라온 사진이 없어요.<br />하객분들이 QR로 올리면 여기에 바로 모입니다.</div>

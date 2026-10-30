@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { siteOrigin } from "@/lib/site";
 import QRCode from "qrcode";
 import { withSource } from "@/lib/sources";
 import { useStableUrls } from "@/lib/stableUrls";
@@ -20,7 +21,7 @@ export default function LiveScreen({ slug, names }: { slug: string; names: strin
   const stable = useStableUrls();
 
   useEffect(() => {
-    const url = withSource(`${location.origin}/w/${slug}`, "screen");
+    const url = withSource(`${siteOrigin()}/w/${slug}`, "screen");
     QRCode.toDataURL(url, { width: 900, margin: 1, color: { dark: "#0A0A0A", light: "#FFFFFF" } }).then(setQr).catch(() => {});
   }, [slug]);
 
