@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { admin, BUCKET, coverUrl, weddingBySlug } from "@/lib/supabase";
 import { phase } from "@/lib/dates";
 import { readScenes } from "@/lib/scenesServer";
+import { checkNew } from "@/lib/sorting";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function GET(req: Request) {
   const db = admin();
   const { data: rows } = await db
     .from("media")
-    .select("id, kind, path, thumb_path, uploader_name, is_pro, created_at, device_id")
+    .select("id, kind, path, thumb_path, uploader_name, is_pro, created_at, device_id, scene, scene_ai, hidden")
     .eq("wedding_id", wedding.id)
     .eq("uploaded", true)
     .order("created_at", { ascending: false })
@@ -23,6 +24,8 @@ export async function GET(req: Request) {
 
   const list = rows ?? [];
   const scenes = await readScenes(wedding.id);
+  if (list.some((r) => r.thumb_path && !r.scene_ai && Date.now() - new Date(r.created_at).getTime() > 30_000))
+    after(() => checkNew(wedding.id).catch(() => {}));
   const paths = list.flatMap((r) => (r.thumb_path ? [r.path, r.thumb_path] : [r.path]));
   const signed = new Map<string, string>();
   for (let i = 0; i < paths.length; i += 500) {
@@ -37,7 +40,7 @@ export async function GET(req: Request) {
     ai: !!process.env.ANTHROPIC_API_KEY,
     guestCount: new Set(list.filter((r) => !r.is_pro).map((r) => r.device_id ?? `name:${r.uploader_name}`)).size,
     items: list.map((r) => ({
-      id: r.id, kind: r.kind, scene: scenes[r.id] ?? null, canScene: !!r.thumb_path, from: r.uploader_name, pro: r.is_pro, at: r.created_at,
+      id: r.id, kind: r.kind, scene: r.scene ?? (typeof scenes[r.id] === "string" ? scenes[r.id] : null), hidden: !!r.hidden, canScene: !!r.thumb_path, from: r.uploader_name, pro: r.is_pro, at: r.created_at,
       url: signed.get(r.path) ?? null,
       thumb: r.thumb_path ? signed.get(r.thumb_path) ?? null : null,
     })),

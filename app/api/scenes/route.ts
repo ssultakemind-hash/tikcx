@@ -1,77 +1,88 @@
 import { NextResponse } from "next/server";
-import { admin, BUCKET, weddingBySlug } from "@/lib/supabase";
-import { AI, classify, MANUAL, manualIds, readScenes, writeScenes } from "@/lib/scenesServer";
+import { admin, weddingBySlug } from "@/lib/supabase";
+import { AI, manualIds, readScenes } from "@/lib/scenesServer";
 import { recordCorrection } from "@/lib/insights";
+import { checkNew, resortBatch } from "@/lib/sorting";
 import { SCENE_KEYS } from "@/lib/scenes";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const PER_REQUEST = 6;   // photos per AI request
-const PARALLEL = 3;      // AI requests at once → up to 18 photos per call to this route
+type Body = { slug?: string; k?: string; key?: string; reset?: boolean; id?: string; scene?: string; hidden?: boolean };
 
-// Sorts not-yet-sorted photos of one wedding into scenes, a batch at a time.
-// The page keeps calling this until `left` is 0. Couple key or admin key required.
-export async function POST(req: Request) {
-  const body = await req.json().catch(() => null);
+async function auth(body: Body | null, adminOk = false) {
   const wedding = await weddingBySlug(String(body?.slug ?? ""));
-  const isAdmin = !!process.env.ADMIN_KEY && body?.key === process.env.ADMIN_KEY;
-  if (!wedding || (!isAdmin && body?.k !== wedding.couple_key))
-    return NextResponse.json({ error: "링크가 올바르지 않습니다." }, { status: 403 });
+  const isAdmin = adminOk && !!process.env.ADMIN_KEY && body?.key === process.env.ADMIN_KEY;
+  if (!wedding || (!isAdmin && body?.k !== wedding.couple_key)) return null;
+  return wedding;
+}
+
+// Current scene of every photo (from the photo rows; older weddings fall back to the old file).
+async function snapshot(weddingId: string) {
+  const { data: rows } = await admin().from("media").select("id, scene, scene_manual")
+    .eq("wedding_id", weddingId).eq("uploaded", true).not("thumb_path", "is", null).limit(5000);
+  const legacy = await readScenes(weddingId);
+  const scenes: Record<string, string> = {};
+  let left = 0;
+  for (const r of rows ?? []) {
+    const s = r.scene ?? (typeof legacy[r.id] === "string" ? legacy[r.id] : null);
+    if (s) scenes[r.id] = s; else left++;
+  }
+  return { scenes, left, done: (rows ?? []).length - left };
+}
+
+// Sorts photos into scenes a batch at a time; the page keeps calling until `left` is 0.
+// reset=true ("다시 정리") clears scenes the couple didn't set by hand and sorts again.
+export async function POST(req: Request) {
+  const body = (await req.json().catch(() => null)) as Body | null;
+  const wedding = await auth(body, true);
+  if (!wedding) return NextResponse.json({ error: "링크가 올바르지 않습니다." }, { status: 403 });
   if (!process.env.ANTHROPIC_API_KEY)
     return NextResponse.json({ error: "AI 기능이 아직 연결되지 않았어요." }, { status: 503 });
 
   const db = admin();
-  const { data: rows } = await db.from("media").select("id, thumb_path")
-    .eq("wedding_id", wedding.id).eq("uploaded", true).not("thumb_path", "is", null)
-    .order("created_at", { ascending: true }).limit(3000);
-  const saved = await readScenes(wedding.id);
-  // "다시 정리": start over, but keep the photos the couple moved by hand.
-  const scenes: Record<string, unknown> = body?.reset === true
-    ? Object.fromEntries([[MANUAL, manualIds(saved)], [AI, saved[AI] ?? {}], ...manualIds(saved).filter((id) => saved[id]).map((id) => [id, saved[id]])])
-    : saved;
-  const aiSaid = (scenes[AI] && typeof scenes[AI] === "object" ? scenes[AI] : (scenes[AI] = {})) as Record<string, string>;
-  const todo = (rows ?? []).filter((r) => !scenes[r.id]);
-  const batch = todo.slice(0, PER_REQUEST * PARALLEL);
-
-  if (batch.length) {
-    const groups: { id: string; path: string }[][] = [];
-    batch.forEach((r, i) => { (groups[Math.floor(i / PER_REQUEST)] ??= []).push({ id: r.id, path: r.thumb_path as string }); });
-    let failed = 0;
-    let lastError = "";
-    await Promise.all(groups.map(async (g) => {
-      try {
-        const labels = await classify(g.map((x) => x.path));
-        g.forEach((x, i) => { scenes[x.id] = labels[i]; aiSaid[x.id] = labels[i]; });
-      } catch (e) { failed += g.length; lastError = String(e instanceof Error ? e.message : e); }
-    }));
-    if (failed < batch.length) await writeScenes(wedding.id, scenes);
-    if (failed === batch.length) {
-      console.error("scene classify failed", lastError);
-      return NextResponse.json({ error: "AI가 사진을 분류하지 못했어요. 잠시 뒤 다시 해주세요.", detail: lastError.slice(0, 300) }, { status: 502 });
-    }
+  if (body?.reset === true) {
+    // keep hand-made choices (also those from the older file)
+    const legacy = await readScenes(wedding.id);
+    for (const id of manualIds(legacy)) if (typeof legacy[id] === "string")
+      await db.from("media").update({ scene: legacy[id], scene_manual: true }).eq("id", id).eq("wedding_id", wedding.id);
+    await db.from("media").update({ scene: null }).eq("wedding_id", wedding.id).eq("scene_manual", false);
   }
-
-  const left = (rows ?? []).filter((r) => !scenes[r.id]).length;
-  return NextResponse.json({ done: (rows ?? []).length - left, left, scenes });
+  // photos never checked first (safety + scene), then ones waiting for a new scene
+  let r = await checkNew(wedding.id);
+  if (!r.done && !r.error) r = await resortBatch(wedding.id);
+  const s = await snapshot(wedding.id);
+  if (r.error && !r.done) {
+    console.error("scene sort failed", r.error);
+    return NextResponse.json({ error: "AI가 사진을 분류하지 못했어요. 잠시 뒤 다시 해주세요.", detail: r.error.slice(0, 300), ...s }, { status: 502 });
+  }
+  // nothing could be done but some are left (e.g. being checked right now): tell the page to stop politely
+  return NextResponse.json(r.done ? s : { ...s, left: 0, waiting: s.left });
 }
 
-// Couple moves one photo to another scene by hand.
+// Couple moves one photo to another scene by hand, or hides/shows it for guests and the screen.
 export async function PATCH(req: Request) {
-  const body = await req.json().catch(() => null);
-  const wedding = await weddingBySlug(String(body?.slug ?? ""));
-  if (!wedding || body?.k !== wedding.couple_key) return NextResponse.json({ error: "링크가 올바르지 않습니다." }, { status: 403 });
+  const body = (await req.json().catch(() => null)) as Body | null;
+  const wedding = await auth(body);
+  if (!wedding) return NextResponse.json({ error: "링크가 올바르지 않습니다." }, { status: 403 });
   const id = String(body?.id ?? "");
+  const db = admin();
+  const { data: m } = await db.from("media").select("id, kind, scene, scene_ai").eq("id", id).eq("wedding_id", wedding.id).maybeSingle();
+  if (!m) return NextResponse.json({ error: "사진을 찾을 수 없어요." }, { status: 404 });
+
+  if (typeof body?.hidden === "boolean") {
+    await db.from("media").update({ hidden: body.hidden }).eq("id", id);
+    return NextResponse.json({ ok: true });
+  }
+
   const scene = String(body?.scene ?? "");
-  if (!id || !SCENE_KEYS.includes(scene)) return NextResponse.json({ error: "장면을 다시 골라주세요." }, { status: 400 });
-  const scenes = await readScenes(wedding.id);
-  const from = typeof scenes[id] === "string" ? scenes[id] : null;
+  if (!SCENE_KEYS.includes(scene)) return NextResponse.json({ error: "장면을 다시 골라주세요." }, { status: 400 });
+  const legacy = await readScenes(wedding.id);
+  const from = m.scene ?? (typeof legacy[id] === "string" ? legacy[id] : null);
   if (from === scene) return NextResponse.json({ ok: true });
-  scenes[id] = scene;
-  scenes[MANUAL] = [...new Set([...manualIds(scenes), id])];
-  await writeScenes(wedding.id, scenes);
+  await db.from("media").update({ scene, scene_manual: true }).eq("id", id);
   // Long-term record of the fix (kept after photos are deleted; no photo, no names).
-  const { data: m } = await admin().from("media").select("kind").eq("id", id).eq("wedding_id", wedding.id).maybeSingle();
-  await recordCorrection(wedding, { at: new Date().toISOString(), media_id: id, kind: m?.kind ?? null, ai: scenes[AI]?.[id] ?? null, from, to: scene }).catch(() => {});
+  const ai = m.scene_ai ?? legacy[AI]?.[id] ?? null;
+  await recordCorrection(wedding, { at: new Date().toISOString(), media_id: id, kind: m.kind ?? null, ai, from, to: scene }).catch(() => {});
   return NextResponse.json({ ok: true });
 }

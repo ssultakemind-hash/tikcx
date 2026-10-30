@@ -6,7 +6,7 @@ import CoverPicker from "../../CoverPicker";
 import { shortDate, WARN_DAYS, type Phase } from "@/lib/dates";
 import { SCENES, sceneLabel } from "@/lib/scenes";
 
-type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null; scene: string | null; canScene: boolean };
+type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null; scene: string | null; canScene: boolean; hidden?: boolean };
 type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; phase: Phase; cover: string | null; guestCount: number; ai: boolean; items: Item[] };
 type Filter = "all" | "guest" | "pro" | "video";
 
@@ -59,6 +59,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
       if (!r.ok) { setSortError((d.error || "장면 정리를 하지 못했어요.") + (d.detail ? ` (원인: ${d.detail.slice(0, 120)})` : "")); break; }
       setData((cur) => cur && { ...cur, items: cur.items.map((i) => ({ ...i, scene: d.scenes?.[i.id] ?? null })) });
       setSorting({ done: d.done, total: d.done + d.left });
+      if (d.waiting) setSortError(`${d.waiting}장은 AI가 지금 확인 중이에요. 1분 뒤에 다시 눌러주세요.`);
       if (!d.left) break;
     }
     setSorting(null);
@@ -118,6 +119,14 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
     setCur({ ...cur, scene: next });
     setData((d) => d && { ...d, items: d.items.map((i) => (i.id === id ? { ...i, scene: next } : i)) });
     await fetch("/api/scenes", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k, id, scene: next }) }).catch(() => {});
+  }
+
+  async function toggleHidden() {
+    if (!cur) return;
+    const id = cur.id, hidden = !cur.hidden;
+    setCur({ ...cur, hidden });
+    setData((d) => d && { ...d, items: d.items.map((i) => (i.id === id ? { ...i, hidden } : i)) });
+    await fetch("/api/scenes", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k, id, hidden }) }).catch(() => {});
   }
 
   async function remove() {
@@ -227,6 +236,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
                   : <img src={it.url ?? undefined} alt="" loading="lazy" />}
                 <span className="tag">{it.from}</span>
                 {it.kind === "video" && <span className="play">▶ 영상</span>}
+                {it.hidden && <span className="hidden-tag">숨김</span>}
               </button>
             ))}
           </div>
@@ -272,6 +282,8 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
               : <img src={cur.url ?? undefined} alt="" />}
           </div>
           <p className="vinfo">{cur.from} · {cur.kind === "video" ? "영상" : "사진"} · 원본 화질</p>
+          {cur.hidden && <p className="vinfo warn-text">AI가 부적절해 보인다고 판단해 하객 화면과 대기실 화면에서 숨긴 사진이에요.</p>}
+          <button className="btn vbtn" type="button" onClick={toggleHidden}>{cur.hidden ? "하객에게 보이기" : "하객·대기실 화면에서 숨기기"}</button>
           {data.ai && cur.canScene && (
             <label className="scene-pick">
               <span>장면</span>

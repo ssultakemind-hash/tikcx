@@ -51,6 +51,8 @@ decor = flowers, bouquets, floral arrangements, table and stage decorations
 venue = the wedding hall, stage, garden or building without people as the subject
 detail = close-ups of objects: rings, shoes, invitations, name cards, cake, gifts
 other = anything else (blurry, accidental, screenshots)
+unsafe = nudity or sexual content, graphic violence or blood, hateful symbols, obscene gestures, or anything clearly inappropriate to show on a screen at a wedding
+Use "unsafe" only when it is clearly inappropriate; a normal wedding photo is never unsafe.
 Tip: a couple walking among guests or through a room after the ceremony is "greeting", not an entrance.
 Answer with ONLY a JSON array of labels, one per photo, e.g. ["bride","guests"].`;
 
@@ -91,8 +93,9 @@ export async function classify(thumbPaths: string[]): Promise<string[]> {
     if (Array.isArray(arr)) labels = arr.map((x) => String(x).trim().toLowerCase());
   } catch { /* fall back below */ }
   if (labels.length < thumbPaths.length)
-    labels = [...text.toLowerCase().matchAll(/[a-z_]+/g)].map((m) => m[0]).filter((w) => SCENE_KEYS.includes(w));
-  labels = labels.map((l) => (SCENE_KEYS.includes(l) ? l : "other"));
+    labels = [...text.toLowerCase().matchAll(/[a-z_]+/g)].map((m) => m[0]).filter((w) => SCENE_KEYS.includes(w) || w === "unsafe");
+  const ok = (l: string) => SCENE_KEYS.includes(l) || l === "unsafe";
+  labels = labels.map((l) => (ok(l) ? l : "other"));
   if (labels.length < thumbPaths.length) throw new ClassifyError(`AI answer unreadable: ${text.slice(0, 200)}`);
   return thumbPaths.map((_, i) => (images[i] ? labels[i] : "other"));
 }

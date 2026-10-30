@@ -79,3 +79,11 @@ as $$ update public.weddings
       visit_sources = visit_sources || jsonb_build_object(src, coalesce((visit_sources->>src)::int, 0) + 1)
   where id = wid; $$;
 revoke execute on function public.inc_visit(uuid, text) from public, anon, authenticated;
+
+-- 2026-10-31: automatic check right after upload (scene + safety), stored per photo
+alter table public.media add column if not exists scene text;
+alter table public.media add column if not exists scene_ai text;
+alter table public.media add column if not exists scene_manual boolean not null default false;
+alter table public.media add column if not exists hidden boolean not null default false;
+alter table public.media add column if not exists checked_at timestamptz;
+create index if not exists media_unchecked_idx on public.media (wedding_id) where checked_at is null;

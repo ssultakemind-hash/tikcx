@@ -44,7 +44,7 @@ type WeddingRow = { id: string; couple_names: string | null; wedding_date: strin
 // Current numbers of a wedding, worked out from its photos and scene file.
 export async function liveStats(w: WeddingRow): Promise<WeddingStats> {
   const db = admin();
-  const { data: media } = await db.from("media").select("id, kind, is_pro, uploader_name, device_id, source")
+  const { data: media } = await db.from("media").select("id, kind, is_pro, uploader_name, device_id, source, scene, scene_ai, scene_manual")
     .eq("wedding_id", w.id).eq("uploaded", true).limit(20000);
   const scenes = await readScenes(w.id);
   const manual = new Set(manualIds(scenes));
@@ -62,11 +62,13 @@ export async function liveStats(w: WeddingRow): Promise<WeddingStats> {
       if (!bySource.has(src)) bySource.set(src, new Set());
       bySource.get(src)!.add(who);
     }
-    const s = scenes[m.id];
-    if (typeof s === "string") {
+    const s = m.scene ?? (typeof scenes[m.id] === "string" ? scenes[m.id] : null);
+    const said = m.scene_ai ?? ai[m.id] ?? null;
+    const byHand = m.scene_manual || manual.has(m.id);
+    if (s) {
       sceneCount[s] = (sceneCount[s] ?? 0) + 1;
-      if (manual.has(m.id) && ai[m.id] && ai[m.id] !== s) handFixed++;
-      if (ai[m.id]) aiSorted++;
+      if (byHand && said && said !== s) handFixed++;
+      if (said) aiSorted++;
     }
   }
   return {
