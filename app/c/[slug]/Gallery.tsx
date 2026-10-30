@@ -233,7 +233,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
               <button key={it.id} className="tile" type="button" aria-label={`${it.from}의 ${it.kind === "video" ? "영상" : "사진"} 크게 보기`}
                 onClick={() => setCur(it)}>
                 {it.thumb ? <img src={it.thumb} alt="" loading="lazy" />
-                  : it.kind === "video" ? <video src={it.url ?? undefined} muted preload="metadata" playsInline />
+                  : it.kind === "video" ? <video src={it.url ? it.url + "#t=0.1" : undefined} muted preload="metadata" playsInline />
                   : <img src={it.url ?? undefined} alt="" loading="lazy" />}
                 <span className="tag">{it.from}</span>
                 {it.kind === "video" && <span className="play">▶ 영상</span>}

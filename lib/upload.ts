@@ -1,17 +1,58 @@
 "use client";
 
 // Makes a small JPEG preview so the gallery loads fast on phones.
-export async function makeThumb(file: File): Promise<Blob | null> {
+// Videos: grabs a frame near the start. iPhone Safari only loads video frames with
+// preload="auto" and an explicit load(), and sometimes only after a muted play(), so all
+// of that is tried. If no frame can be read (e.g. a format this browser can't decode),
+// a simple "영상" card is used so the video still shows up for guests and on the screen.
+async function videoFrame(url: string): Promise<{ src: CanvasImageSource; w: number; h: number } | null> {
+  const v = document.createElement("video");
+  v.muted = true; v.playsInline = true; v.preload = "auto";
+  v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", "");
+  v.style.cssText = "position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0";
+  document.body.appendChild(v);
+  const wait = (ev: string, ms: number) => new Promise<boolean>((res) => {
+    const done = (ok: boolean) => { v.removeEventListener(ev, on); res(ok); };
+    const on = () => done(true);
+    v.addEventListener(ev, on, { once: true });
+    setTimeout(() => done(false), ms);
+  });
   try {
-    const url = URL.createObjectURL(file);
+    v.src = url + "#t=0.1";
+    v.load();
+    if (!(await wait("loadedmetadata", 8000)) || !v.videoWidth) return null;
+    const seeked = wait("seeked", 4000);
+    v.currentTime = Math.min(0.5, (v.duration || 1) / 2);
+    let ok = await seeked;
+    if (!ok || v.readyState < 2) {
+      // last try: a short muted play gives Safari a decoded frame
+      try { await v.play(); await new Promise((r) => setTimeout(r, 300)); v.pause(); ok = v.readyState >= 2; } catch { ok = false; }
+    }
+    return ok ? { src: v, w: v.videoWidth, h: v.videoHeight } : null;
+  } finally {
+    setTimeout(() => { v.removeAttribute("src"); v.load(); v.remove(); }, 0);
+  }
+}
+
+function videoCard(): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = 720; c.height = 960;
+  const x = c.getContext("2d")!;
+  const g = x.createLinearGradient(0, 0, 720, 960); g.addColorStop(0, "#2b2b30"); g.addColorStop(1, "#111114");
+  x.fillStyle = g; x.fillRect(0, 0, 720, 960);
+  x.fillStyle = "rgba(255,255,255,.9)"; x.beginPath(); x.moveTo(300, 400); x.lineTo(300, 560); x.lineTo(440, 480); x.closePath(); x.fill();
+  x.font = "600 44px sans-serif"; x.textAlign = "center"; x.fillText("영상", 360, 650);
+  return c;
+}
+
+export async function makeThumb(file: File): Promise<Blob | null> {
+  const url = URL.createObjectURL(file);
+  try {
     let source: CanvasImageSource; let w: number; let h: number;
     if (file.type.startsWith("video/")) {
-      const v = document.createElement("video");
-      v.muted = true; v.playsInline = true; v.preload = "metadata"; v.src = url;
-      await new Promise<void>((res, rej) => { v.onloadeddata = () => res(); v.onerror = () => rej(); setTimeout(rej, 6000); });
-      v.currentTime = Math.min(1, (v.duration || 2) / 2);
-      await new Promise<void>((res) => { v.onseeked = () => res(); setTimeout(res, 3000); });
-      source = v; w = v.videoWidth; h = v.videoHeight;
+      const f = await videoFrame(url).catch(() => null);
+      if (f) ({ src: source, w, h } = f);
+      else { const card = videoCard(); source = card; w = card.width; h = card.height; }
     } else {
       const img = new Image(); img.src = url;
       await img.decode();
@@ -22,9 +63,9 @@ export async function makeThumb(file: File): Promise<Blob | null> {
     const c = document.createElement("canvas");
     c.width = Math.round(w * s); c.height = Math.round(h * s);
     c.getContext("2d")!.drawImage(source, 0, 0, c.width, c.height);
-    URL.revokeObjectURL(url);
     return await new Promise((res) => c.toBlob((b) => res(b), "image/jpeg", 0.8));
   } catch { return null; }
+  finally { URL.revokeObjectURL(url); }
 }
 
 function put(url: string, body: Blob, type: string, onProgress?: (p: number) => void) {
