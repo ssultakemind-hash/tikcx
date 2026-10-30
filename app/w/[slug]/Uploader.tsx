@@ -69,11 +69,11 @@ export default function Uploader({ slug, adminKey, onDone }: { slug: string; adm
       ) : (
         <label className="pick">
           <input id="files" type="file" accept="image/*,video/*" multiple onChange={onPick} />
-          <span className="btn" role="button">{adminKey ? "작가 사진·영상 올리기" : "사진 올리기"}</span>
+          <span className="btn" role="button">{adminKey ? "작가 사진·영상 올리기" : "사진·영상 올리기"}</span>
         </label>
       )}
       {error && <p className="err">{error}</p>}
-      <p className="muted">한 번에 최대 {MAX}개 · 파일당 50MB까지</p>
+      <p className="muted">한 번에 최대 {MAX}개 · <b>영상은 30초 이내</b>로 올려주세요</p>
     </div>
   );
 }

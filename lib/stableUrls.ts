@@ -8,9 +8,10 @@ const MAX_AGE_MS = 40 * 60 * 1000;
 
 export function useStableUrls() {
   const seen = useRef(new Map<string, { url: string; at: number }>());
-  return <T extends { id: string; thumb: string }>(items: T[]): T[] => {
+  return <T extends { id: string; thumb: string | null }>(items: T[]): T[] => {
     const now = Date.now();
     return items.map((it) => {
+      if (!it.thumb) return it;
       const prev = seen.current.get(it.id);
       if (prev && now - prev.at < MAX_AGE_MS) return { ...it, thumb: prev.url };
       seen.current.set(it.id, { url: it.thumb, at: now });

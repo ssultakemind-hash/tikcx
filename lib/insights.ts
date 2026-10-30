@@ -24,7 +24,7 @@ export type WeddingStats = {
   archived_at?: string;
 };
 
-export type Correction = { at: string; media_id: string; kind: string | null; ai: string | null; from: string | null; to: string };
+export type Correction = { at: string; media_id: string; kind: string | null; field?: "scene" | "mood"; ai: string | null; from: string | null; to: string };
 
 const store = () => admin().storage.from(BUCKET);
 const weddingPath = (id: string) => `insights/weddings/${id}.json`;

@@ -206,3 +206,7 @@ body:has(.live) .foot{display:none}
 .scene-pick select option{color:#000}
 .hidden-tag{position:absolute;top:8px;left:8px;background:var(--warn);color:#fff;font-size:12px;font-weight:700;border-radius:99px;padding:3px 9px}
 .warn-text{color:#ff8a75}
+.chip-label{align-self:center;font-size:13px;font-weight:700;color:var(--muted);padding:0 4px 0 2px}
+.pick-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 14px}
+.video-tile{position:absolute;inset:0;display:grid;place-items:center;background:linear-gradient(135deg,#2b2b30,#111114);color:#fff;font-size:28px}
+.video-tile.big{position:static;width:min(70vw,360px);aspect-ratio:3/4;margin:auto;border-radius:12px;font-size:48px}

@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useStableUrls } from "@/lib/stableUrls";
-import { SCENES } from "@/lib/scenes";
+import { MOODS, SCENES } from "@/lib/scenes";
 
-type Item = { id: string; kind: "image" | "video"; from: string; thumb: string; scene?: string | null };
+type Item = { id: string; kind: "image" | "video"; from: string; thumb: string | null; scene?: string | null; mood?: string | null };
 
 // "모두의 사진": every guest's photos as small previews. View only.
 export default function Wall({ slug, refresh }: { slug: string; refresh: number }) {
@@ -11,6 +11,7 @@ export default function Wall({ slug, refresh }: { slug: string; refresh: number 
   const [open, setOpen] = useState<Item | null>(null);
   const stable = useStableUrls();
   const [scene, setScene] = useState<string | null>(null);
+  const [mood, setMood] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -25,13 +26,16 @@ export default function Wall({ slug, refresh }: { slug: string; refresh: number 
   const counts = new Map<string, number>();
   items.forEach((i) => i.scene && counts.set(i.scene, (counts.get(i.scene) ?? 0) + 1));
   const sceneChips = SCENES.filter((s) => counts.has(s.key));
-  const shown = scene ? items.filter((i) => i.scene === scene) : items;
+  const mc = new Map<string, number>();
+  items.forEach((i) => i.mood && mc.set(i.mood, (mc.get(i.mood) ?? 0) + 1));
+  const moodChips = MOODS.filter((m) => mc.has(m.key));
+  const shown = items.filter((i) => (!scene || i.scene === scene) && (!mood || i.mood === mood));
 
   return (
     <section className="card">
       <div>
         <div className="eyebrow">하객들이 올린 순간</div>
-        <h2>모두의 사진 {items.length > 0 ? items.length : ""}</h2>
+        <h2>모두의 사진·영상 {items.length > 0 ? items.length : ""}</h2>
       </div>
       {items.length === 0 ? (
         <div className="empty">아직 올라온 사진이 없어요.<br />첫 번째 사진을 올려주세요.</div>
@@ -47,10 +51,20 @@ export default function Wall({ slug, refresh }: { slug: string; refresh: number 
             ))}
           </div>
         )}
+        {moodChips.length > 0 && (
+          <div className="chips wrapchips" role="group" aria-label="감정별 보기">
+            <span className="chip-label">감정</span>
+            {moodChips.map((m) => (
+              <button key={m.key} className="chip" type="button" aria-pressed={mood === m.key} onClick={() => setMood(mood === m.key ? null : m.key)}>
+                {m.label} <small>{mc.get(m.key)}</small>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="grid">
           {shown.map((it) => (
             <button key={it.id} className="tile" type="button" aria-label={`${it.from}의 ${it.kind === "video" ? "영상" : "사진"} 크게 보기`} onClick={() => setOpen(it)}>
-              <img src={it.thumb} alt="" loading="lazy" />
+              {it.thumb ? <img src={it.thumb} alt="" loading="lazy" /> : <span className="video-tile" aria-hidden="true">▶</span>}
               <span className="tag">{it.from}</span>
               {it.kind === "video" && <span className="play">▶ 영상</span>}
             </button>
@@ -63,8 +77,8 @@ export default function Wall({ slug, refresh }: { slug: string; refresh: number 
       {open && (
         <div className="viewer" role="dialog" aria-modal="true" aria-label="크게 보기">
           <button className="close" type="button" onClick={() => setOpen(null)}>닫기</button>
-          <div className="stage"><img src={open.thumb} alt="" /></div>
-          <p className="vinfo">{open.from}</p>
+          <div className="stage">{open.thumb ? <img src={open.thumb} alt="" /> : <span className="video-tile big" aria-hidden="true">▶</span>}</div>
+          <p className="vinfo">{open.from}{open.kind === "video" ? " · 영상은 두 사람의 앨범에서 재생돼요" : ""}</p>
         </div>
       )}
     </section>

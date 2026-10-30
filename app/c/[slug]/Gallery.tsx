@@ -5,9 +5,9 @@ import Invite from "./Invite";
 import SaveAll from "./SaveAll";
 import CoverPicker from "../../CoverPicker";
 import { shortDate, WARN_DAYS, type Phase } from "@/lib/dates";
-import { SCENES, sceneLabel } from "@/lib/scenes";
+import { MOODS, moodLabel, SCENES, sceneLabel } from "@/lib/scenes";
 
-type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null; scene: string | null; canScene: boolean; hidden?: boolean };
+type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null; scene: string | null; canScene: boolean; hidden?: boolean; mood?: string | null };
 type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; phase: Phase; cover: string | null; guestCount: number; ai: boolean; items: Item[] };
 type Filter = "all" | "guest" | "pro" | "video";
 
@@ -22,6 +22,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
   const [cur, setCur] = useState<Item | null>(null);
   const [armed, setArmed] = useState(false);
   const [scene, setScene] = useState<string | null>(null);
+  const [mood, setMood] = useState<string | null>(null);
   const [sorting, setSorting] = useState<{ done: number; total: number } | null>(null);
   const [sortError, setSortError] = useState("");
 
@@ -36,14 +37,19 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
 
   const list = useMemo(() => (data?.items ?? []).filter((it) =>
     (filter === "all" || (filter === "guest" && it.kind === "image") || (filter === "pro" && it.pro) || (filter === "video" && it.kind === "video"))
-    && (!scene || it.scene === scene)), [data, filter, scene]);
+    && (!scene || it.scene === scene) && (!mood || it.mood === mood)), [data, filter, scene, mood]);
 
   const sceneCounts = useMemo(() => {
     const c = new Map<string, number>();
     (data?.items ?? []).forEach((i) => i.scene && c.set(i.scene, (c.get(i.scene) ?? 0) + 1));
     return SCENES.filter((s) => c.has(s.key)).map((s) => ({ ...s, n: c.get(s.key)! }));
   }, [data]);
-  const unsorted = (data?.items ?? []).filter((i) => i.canScene && !i.scene).length;
+  const moodCounts = useMemo(() => {
+    const c = new Map<string, number>();
+    (data?.items ?? []).forEach((i) => i.mood && i.mood !== "none" && c.set(i.mood, (c.get(i.mood) ?? 0) + 1));
+    return MOODS.filter((m) => c.has(m.key)).map((m) => ({ ...m, n: c.get(m.key)! }));
+  }, [data]);
+  const unsorted = (data?.items ?? []).filter((i) => i.canScene && (!i.scene || !i.mood)).length;
 
   // Asks the AI to sort photos into scenes, one batch per call, until none are left.
   async function sortScenes(reset = false) {
@@ -51,14 +57,14 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
     setSortError("");
     const total = (data?.items ?? []).filter((i) => i.canScene).length;
     setSorting({ done: reset ? 0 : total - unsorted, total });
-    if (reset) setScene(null);
+    if (reset) { setScene(null); setMood(null); }
     let first = true;
     for (let guard = 0; guard < 300; guard++) {
       const r = await fetch("/api/scenes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k, reset: reset && first }) });
       first = false;
       const d = await r.json().catch(() => ({}));
       if (!r.ok) { setSortError((d.error || "장면 정리를 하지 못했어요.") + (d.detail ? ` (원인: ${d.detail.slice(0, 120)})` : "")); break; }
-      setData((cur) => cur && { ...cur, items: cur.items.map((i) => ({ ...i, scene: d.scenes?.[i.id] ?? null })) });
+      setData((cur) => cur && { ...cur, items: cur.items.map((i) => ({ ...i, scene: d.scenes?.[i.id] ?? null, mood: d.moods?.[i.id] ?? null })) });
       setSorting({ done: d.done, total: d.done + d.left });
       if (d.waiting) setSortError(`${d.waiting}장은 AI가 지금 확인 중이에요. 1분 뒤에 다시 눌러주세요.`);
       if (!d.left) break;
@@ -120,6 +126,14 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
     setCur({ ...cur, scene: next });
     setData((d) => d && { ...d, items: d.items.map((i) => (i.id === id ? { ...i, scene: next } : i)) });
     await fetch("/api/scenes", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k, id, scene: next }) }).catch(() => {});
+  }
+
+  async function changeMood(next: string) {
+    if (!cur || !next) return;
+    const id = cur.id;
+    setCur({ ...cur, mood: next });
+    setData((d) => d && { ...d, items: d.items.map((i) => (i.id === id ? { ...i, mood: next } : i)) });
+    await fetch("/api/scenes", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k, id, mood: next }) }).catch(() => {});
   }
 
   async function toggleHidden() {
@@ -206,6 +220,16 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
                 ))}
               </div>
             )}
+            {moodCounts.length > 0 && (
+              <div className="chips wrapchips" role="group" aria-label="감정별 보기">
+                <span className="chip-label">감정</span>
+                {moodCounts.map((m) => (
+                  <button key={m.key} className="chip" type="button" aria-pressed={mood === m.key} onClick={() => setMood(mood === m.key ? null : m.key)}>
+                    {m.label} <small>{m.n}</small>
+                  </button>
+                ))}
+              </div>
+            )}
             {unsorted > 0 && (
               <button className="btn ghost small" type="button" onClick={() => sortScenes()} disabled={!!sorting}>
                 {sorting ? `AI가 장면을 정리하는 중… ${sorting.done}/${sorting.total}` : sceneCounts.length ? `새 사진 ${unsorted}장 장면 정리하기` : `AI로 장면별 정리하기 (${unsorted}장)`}
@@ -220,9 +244,9 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
           </div>
         )}
         {list.length > 0 && (
-          <SaveAll key={`${filter}-${scene}`} slug={slug} items={list}
-            label={[scene ? sceneLabel(scene) : "", filter === "guest" ? "사진" : filter === "video" ? "영상" : ""].filter(Boolean).join(" ") || undefined}
-            fileTag={[scene ?? "", filter === "guest" ? "photo" : filter === "video" ? "video" : ""].filter(Boolean).join("-")}
+          <SaveAll key={`${filter}-${scene}-${mood}`} slug={slug} items={list}
+            label={[scene ? sceneLabel(scene) : "", mood ? moodLabel(mood) : "", filter === "guest" ? "사진" : filter === "video" ? "영상" : ""].filter(Boolean).join(" ") || undefined}
+            fileTag={[scene ?? "", mood ?? "", filter === "guest" ? "photo" : filter === "video" ? "video" : ""].filter(Boolean).join("-")}
             albumUrl={typeof window !== "undefined" ? siteOrigin() + window.location.pathname + window.location.search.replace(/&from=admin/, "") : undefined} />
         )}
         {list.length === 0 ? (
@@ -285,14 +309,24 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
           <p className="vinfo">{cur.from} · {cur.kind === "video" ? "영상" : "사진"} · 원본 화질</p>
           {cur.hidden && <p className="vinfo warn-text">AI가 부적절해 보인다고 판단해 하객 화면과 대기실 화면에서 숨긴 사진이에요.</p>}
           <button className="btn vbtn" type="button" onClick={toggleHidden}>{cur.hidden ? "하객에게 보이기" : "하객·대기실 화면에서 숨기기"}</button>
-          {data.ai && cur.canScene && (
-            <label className="scene-pick">
-              <span>장면</span>
-              <select value={cur.scene ?? ""} onChange={(e) => moveScene(e.target.value)} aria-label="장면 바꾸기">
-                {!cur.scene && <option value="">아직 정리 안 됨</option>}
-                {SCENES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-              </select>
-            </label>
+          {data.ai && (
+            <div className="pick-row">
+              <label className="scene-pick">
+                <span>장면</span>
+                <select value={cur.scene ?? ""} onChange={(e) => moveScene(e.target.value)} aria-label="장면 바꾸기">
+                  {!cur.scene && <option value="">아직 정리 안 됨</option>}
+                  {SCENES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                </select>
+              </label>
+              <label className="scene-pick">
+                <span>감정</span>
+                <select value={cur.mood ?? ""} onChange={(e) => changeMood(e.target.value)} aria-label="감정 바꾸기">
+                  {!cur.mood && <option value="">아직 정리 안 됨</option>}
+                  {MOODS.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
+                  <option value="none">없음</option>
+                </select>
+              </label>
+            </div>
           )}
           <div className="row">
             <button className="btn vbtn solid" type="button" onClick={saveCurrent} disabled={busySave}>{busySave ? "준비 중…" : "저장"}</button>

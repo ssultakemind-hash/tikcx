@@ -35,7 +35,7 @@ export default function MyPhotos({ slug, refresh }: { slug: string; refresh: num
     <section className="card">
       <div>
         <div className="eyebrow">이 휴대폰에서 올린 사진</div>
-        <h2>내가 올린 사진 {items.length}</h2>
+        <h2>내가 올린 사진·영상 {items.length}</h2>
       </div>
       <div className="grid">
         {items.map((it) => (
@@ -47,7 +47,7 @@ export default function MyPhotos({ slug, refresh }: { slug: string; refresh: num
           </button>
         ))}
       </div>
-      <p className="muted">잘못 올린 사진은 눌러서 지울 수 있어요.</p>
+      <p className="muted">잘못 올린 사진·영상은 눌러서 지울 수 있어요.</p>
 
       {open && (
         <div className="viewer" role="dialog" aria-modal="true" aria-label="크게 보기">

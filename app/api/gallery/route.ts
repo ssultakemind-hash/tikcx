@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   const db = admin();
   const { data: rows } = await db
     .from("media")
-    .select("id, kind, path, thumb_path, uploader_name, is_pro, created_at, device_id, scene, scene_ai, hidden")
+    .select("id, kind, path, thumb_path, uploader_name, is_pro, created_at, device_id, scene, scene_ai, hidden, mood")
     .eq("wedding_id", wedding.id)
     .eq("uploaded", true)
     .order("created_at", { ascending: false })
@@ -40,7 +40,7 @@ export async function GET(req: Request) {
     ai: !!process.env.ANTHROPIC_API_KEY,
     guestCount: new Set(list.filter((r) => !r.is_pro).map((r) => r.device_id ?? `name:${r.uploader_name}`)).size,
     items: list.map((r) => ({
-      id: r.id, kind: r.kind, scene: r.scene ?? (typeof scenes[r.id] === "string" ? scenes[r.id] : null), hidden: !!r.hidden, canScene: !!r.thumb_path, from: r.uploader_name, pro: r.is_pro, at: r.created_at,
+      id: r.id, kind: r.kind, scene: r.scene ?? (typeof scenes[r.id] === "string" ? scenes[r.id] : null), hidden: !!r.hidden, mood: r.mood ?? null, canScene: !!r.thumb_path, from: r.uploader_name, pro: r.is_pro, at: r.created_at,
       url: signed.get(r.path) ?? null,
       thumb: r.thumb_path ? signed.get(r.thumb_path) ?? null : null,
     })),
