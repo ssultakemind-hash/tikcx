@@ -2,24 +2,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { STATUSES, TIMINGS } from "@/lib/leads";
 import { useCopy } from "@/lib/copy";
+import { saveCsv, today } from "@/lib/csv";
 
 type Lead = { id: string; name: string; phone: string; timing: string; interests: string[]; marketing: boolean; status: string; memo: string | null; wedding_label: string | null; created_at: string };
 
-function saveCsv(rows: Lead[]) {
-  const head = ["남긴 날", "이름", "휴대폰", "결혼 예정", "고민 중", "소식 수신 동의", "상태", "메모", "어느 예식에서"];
-  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
-  const body = rows.map((l) => [
-    l.created_at.slice(0, 10), l.name, l.phone, l.timing, l.interests.join(" / "), l.marketing ? "동의" : "",
-    STATUSES.find((s) => s.id === l.status)?.label ?? l.status, l.memo ?? "", l.wedding_label ?? "",
-  ].map((v) => esc(String(v))).join(","));
-  const blob = new Blob(["﻿" + [head.map(esc).join(","), ...body].join("\n")], { type: "text/csv;charset=utf-8" });
-  const name = `tikcx-예비부부-${new Date().toISOString().slice(0, 10)}.csv`;
-  const file = new File([blob], name, { type: "text/csv" });
-  const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if (mobile && navigator.canShare?.({ files: [file] })) { navigator.share({ files: [file] }).catch(() => {}); return; }
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
+function exportLeads(rows: Lead[]) {
+  saveCsv(`tikcx-leads-${today()}.csv`,
+    ["남긴 날", "이름", "휴대폰", "결혼 예정", "고민 중", "소식 수신 동의", "상태", "메모", "어느 예식에서"],
+    rows.map((l) => [
+      l.created_at.slice(0, 10), l.name, l.phone, l.timing, l.interests.join(" / "), l.marketing ? "동의" : "",
+      STATUSES.find((s) => s.id === l.status)?.label ?? l.status, l.memo ?? "", l.wedding_label ?? "",
+    ]));
 }
 
 // Studio admin: people who said "결혼 준비 중이에요" on a guest page.
@@ -59,7 +52,7 @@ export default function Leads({ adminKey }: { adminKey: string }) {
           <div className="eyebrow">하객 중 결혼 준비 중인 사람</div>
           <h2>예비부부 {leads ? leads.length : ""}{newCount ? ` · 새로 ${newCount}` : ""}</h2>
         </div>
-        {leads && leads.length > 0 && <button className="btn ghost small" type="button" onClick={() => saveCsv(shown)}>엑셀로 저장</button>}
+        {leads && leads.length > 0 && <button className="btn ghost small" type="button" onClick={() => exportLeads(shown)}>엑셀로 저장</button>}
       </div>
       <div className="chips" role="group" aria-label="예비부부 필터">
         {[["active", "진행 중"], ...TIMINGS.map((t) => [t, t]), ["all", "전체"]].map(([id, label]) => (

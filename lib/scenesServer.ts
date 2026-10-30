@@ -14,6 +14,7 @@ export async function readScenes(weddingId: string): Promise<Record<string, any>
 // Photos the couple moved by hand. Kept under "__manual" in the same file and never
 // overwritten by "다시 정리".
 export const MANUAL = "__manual";
+export const AI = "__ai"; // { mediaId: what the AI said }
 export function manualIds(map: Record<string, unknown>): string[] {
   const m = map[MANUAL];
   return Array.isArray(m) ? m.filter((x) => typeof x === "string") : [];

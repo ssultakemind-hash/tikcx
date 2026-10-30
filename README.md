@@ -30,3 +30,8 @@
 - 환경변수 `ANTHROPIC_API_KEY`가 있으면 신랑·신부 앨범에 "AI로 장면별 정리하기" 버튼이 보입니다.
 - 미리보기(썸네일)만 AI에 보내고, 결과는 저장소 `scenes/<예식 id>.json`에 저장합니다. 예식 삭제·보관 기간 종료 시 같이 지워집니다.
 - 장면 목록: `lib/scenes.ts`, AI 지시문: `lib/scenesServer.ts`
+
+## 오래 남는 기록 (사진 없음)
+- `insights/weddings/<예식 id>.json`: 보관 기간이 끝나 사진을 지우기 직전의 최종 숫자 (이름 제외)
+- `insights/corrections/<예식 id>.json`: 신랑·신부가 AI 장면을 고친 기록 (AI 판단 → 고친 장면)
+- 예식 삭제·30일 정리 때도 지워지지 않음. 관리자 맨 아래 '데이터 내보내기'에서 엑셀로 받기

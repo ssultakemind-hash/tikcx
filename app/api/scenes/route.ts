@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { admin, BUCKET, weddingBySlug } from "@/lib/supabase";
-import { classify, MANUAL, manualIds, readScenes, writeScenes } from "@/lib/scenesServer";
+import { AI, classify, MANUAL, manualIds, readScenes, writeScenes } from "@/lib/scenesServer";
+import { recordCorrection } from "@/lib/insights";
 import { SCENE_KEYS } from "@/lib/scenes";
 
 export const dynamic = "force-dynamic";
@@ -27,8 +28,9 @@ export async function POST(req: Request) {
   const saved = await readScenes(wedding.id);
   // "다시 정리": start over, but keep the photos the couple moved by hand.
   const scenes: Record<string, unknown> = body?.reset === true
-    ? Object.fromEntries([[MANUAL, manualIds(saved)], ...manualIds(saved).filter((id) => saved[id]).map((id) => [id, saved[id]])])
+    ? Object.fromEntries([[MANUAL, manualIds(saved)], [AI, saved[AI] ?? {}], ...manualIds(saved).filter((id) => saved[id]).map((id) => [id, saved[id]])])
     : saved;
+  const aiSaid = (scenes[AI] && typeof scenes[AI] === "object" ? scenes[AI] : (scenes[AI] = {})) as Record<string, string>;
   const todo = (rows ?? []).filter((r) => !scenes[r.id]);
   const batch = todo.slice(0, PER_REQUEST * PARALLEL);
 
@@ -40,7 +42,7 @@ export async function POST(req: Request) {
     await Promise.all(groups.map(async (g) => {
       try {
         const labels = await classify(g.map((x) => x.path));
-        g.forEach((x, i) => { scenes[x.id] = labels[i]; });
+        g.forEach((x, i) => { scenes[x.id] = labels[i]; aiSaid[x.id] = labels[i]; });
       } catch (e) { failed += g.length; lastError = String(e instanceof Error ? e.message : e); }
     }));
     if (failed < batch.length) await writeScenes(wedding.id, scenes);
@@ -63,8 +65,13 @@ export async function PATCH(req: Request) {
   const scene = String(body?.scene ?? "");
   if (!id || !SCENE_KEYS.includes(scene)) return NextResponse.json({ error: "장면을 다시 골라주세요." }, { status: 400 });
   const scenes = await readScenes(wedding.id);
+  const from = typeof scenes[id] === "string" ? scenes[id] : null;
+  if (from === scene) return NextResponse.json({ ok: true });
   scenes[id] = scene;
   scenes[MANUAL] = [...new Set([...manualIds(scenes), id])];
   await writeScenes(wedding.id, scenes);
+  // Long-term record of the fix (kept after photos are deleted; no photo, no names).
+  const { data: m } = await admin().from("media").select("kind").eq("id", id).eq("wedding_id", wedding.id).maybeSingle();
+  await recordCorrection(wedding, { at: new Date().toISOString(), media_id: id, kind: m?.kind ?? null, ai: scenes[AI]?.[id] ?? null, from, to: scene }).catch(() => {});
   return NextResponse.json({ ok: true });
 }

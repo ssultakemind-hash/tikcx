@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import SaveImageButton from "../SaveImageButton";
 import TableCard from "../TableCard";
 import Leads from "./Leads";
+import DataExport from "./DataExport";
 import { SOURCES, withSource } from "@/lib/sources";
 import { shortUrl, useCopy } from "@/lib/copy";
 import { daysBetween, kstToday, phase, shortDate, WARN_DAYS } from "@/lib/dates";
@@ -181,6 +182,7 @@ export default function Admin() {
           {list.map((w) => <WeddingRow key={w.id} w={w} adminKey={key} expanded={open === w.slug} onToggle={() => setOpen(open === w.slug ? null : w.slug)} onDeleted={() => { setOpen(null); load(); }} />)}
         </div>
       </section>
+      <DataExport adminKey={key} />
     </main>
   );
 }
