@@ -4,7 +4,7 @@ import Invite from "./Invite";
 import SaveAll from "./SaveAll";
 import CoverPicker from "../../CoverPicker";
 import { shortDate, WARN_DAYS, type Phase } from "@/lib/dates";
-import { SCENES } from "@/lib/scenes";
+import { SCENES, sceneLabel } from "@/lib/scenes";
 
 type Item = { id: string; kind: "image" | "video"; from: string; pro: boolean; at: string; url: string | null; thumb: string | null; scene: string | null; canScene: boolean };
 type Data = { wedding: { couple_names: string; wedding_date: string | null; venue: string | null; guest_gallery: boolean }; phase: Phase; cover: string | null; guestCount: number; ai: boolean; items: Item[] };
@@ -166,7 +166,6 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
           <div className="stat"><b>{stats.videos}</b><span>영상</span></div>
           <div className="stat"><b>{stats.guests}</b><span>보낸 하객</span></div>
         </div>
-        <SaveAll slug={slug} items={data.items} />
         <div className="chips" role="group" aria-label="보기 필터">
           {filters.map(([f, label]) => (
             <button key={f} className="chip" type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>{label}</button>
@@ -200,6 +199,12 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
             )}
             {sortError && <p className="notice">{sortError}</p>}
           </div>
+        )}
+        {list.length > 0 && (
+          <SaveAll key={`${filter}-${scene}`} slug={slug} items={list}
+            label={[scene ? sceneLabel(scene) : "", filter === "guest" ? "사진" : filter === "video" ? "영상" : ""].filter(Boolean).join(" ") || undefined}
+            fileTag={[scene ?? "", filter === "guest" ? "photo" : filter === "video" ? "video" : ""].filter(Boolean).join("-")}
+            albumUrl={typeof window !== "undefined" ? window.location.href.replace(/&from=admin/, "") : undefined} />
         )}
         {list.length === 0 ? (
           <div className="empty">아직 올라온 사진이 없어요.<br />하객분들이 QR로 올리면 여기에 바로 모입니다.</div>
