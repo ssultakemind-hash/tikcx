@@ -1,6 +1,7 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { siteOrigin } from "@/lib/site";
+import { putBlob, thumbFromVideoUrl } from "@/lib/upload";
 import Invite from "./Invite";
 import SaveAll from "./SaveAll";
 import CoverPicker from "../../CoverPicker";
@@ -34,6 +35,29 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
   }, [slug, k]);
 
   useEffect(() => { load(); const t = setInterval(load, 60_000); return () => clearInterval(t); }, [load]);
+
+  // Older videos without a preview: make one from the first frame (a few at a time),
+  // so they show a real picture for guests and on the bridal-room screen.
+  const tried = useRef(new Set<string>());
+  useEffect(() => {
+    const todo = (data?.items ?? []).filter((i) => i.kind === "video" && !i.thumb && i.url && !tried.current.has(i.id)).slice(0, 5);
+    if (!todo.length) return;
+    todo.forEach((i) => tried.current.add(i.id));
+    (async () => {
+      for (const it of todo) {
+        try {
+          const blob = await thumbFromVideoUrl(it.url!);
+          if (!blob) continue;
+          const post = (step: string) => fetch("/api/thumb", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, k, id: it.id, step }) }).then((r) => r.json());
+          const s1 = await post("start");
+          if (!s1.uploadUrl) continue;
+          await putBlob(s1.uploadUrl, blob);
+          const s2 = await post("done");
+          if (s2.thumb) setData((d) => d && { ...d, items: d.items.map((x) => (x.id === it.id ? { ...x, thumb: s2.thumb, canScene: true } : x)) });
+        } catch { /* try again next visit */ }
+      }
+    })();
+  }, [data, slug, k]);
 
   const list = useMemo(() => (data?.items ?? []).filter((it) =>
     (filter === "all" || (filter === "guest" && it.kind === "image") || (filter === "pro" && it.pro) || (filter === "video" && it.kind === "video"))

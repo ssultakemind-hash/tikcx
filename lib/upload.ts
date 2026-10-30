@@ -5,8 +5,9 @@
 // preload="auto" and an explicit load(), and sometimes only after a muted play(), so all
 // of that is tried. If no frame can be read (e.g. a format this browser can't decode),
 // a simple "영상" card is used so the video still shows up for guests and on the screen.
-async function videoFrame(url: string): Promise<{ src: CanvasImageSource; w: number; h: number } | null> {
+async function videoFrame(url: string, remote = false): Promise<{ src: CanvasImageSource; w: number; h: number } | null> {
   const v = document.createElement("video");
+  if (remote) v.crossOrigin = "anonymous";
   v.muted = true; v.playsInline = true; v.preload = "auto";
   v.setAttribute("muted", ""); v.setAttribute("playsinline", ""); v.setAttribute("webkit-playsinline", "");
   v.style.cssText = "position:fixed;left:-9999px;top:0;width:2px;height:2px;opacity:0";
@@ -168,4 +169,22 @@ export async function uploadFiles(
   if (okIds.length) await fetch("/api/confirm", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug, ids: okIds }) });
   if (!adminKey) addMine(slug, okIds);
   return { ok: okIds.length, failed, photos, videos, ids: okIds };
+}
+
+// Makes a preview for a video that was uploaded without one (older iPhone uploads).
+// Reads the first frame from the stored video. Returns null if this browser can't.
+export async function thumbFromVideoUrl(url: string): Promise<Blob | null> {
+  try {
+    const f = await videoFrame(url, true);
+    if (!f) return null;
+    const s = Math.min(1, 1280 / Math.max(f.w, f.h));
+    const c = document.createElement("canvas");
+    c.width = Math.round(f.w * s); c.height = Math.round(f.h * s);
+    c.getContext("2d")!.drawImage(f.src, 0, 0, c.width, c.height);
+    return await new Promise((res) => c.toBlob((b) => res(b), "image/jpeg", 0.8));
+  } catch { return null; }
+}
+
+export async function putBlob(url: string, body: Blob) {
+  await put(url, body, "image/jpeg");
 }

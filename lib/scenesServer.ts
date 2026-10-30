@@ -44,8 +44,9 @@ rings = exchanging rings or gifts during the ceremony
 march = the couple walking out together after the ceremony (행진), confetti, applause
 pyebaek = traditional Korean pyebaek ceremony: couple in hanbok bowing to parents, chestnuts and dates
 greeting = the couple going around greeting guests at tables or in a hallway/room after the ceremony (often seen from behind, not on the aisle)
-photo_op = a small group (friends, coworkers, relatives) posing together with the couple for a souvenir photo, photo wall or photo booth
-group = large posed group photo of everyone on stage
+photo_op = a posed souvenir photo: people deliberately posing and looking at the camera, arranged by the photographer (the couple with family, friends, coworkers or relatives, or the couple posing to camera). Natural, candid moments are NOT photo_op.
+group = the large posed group photo of all guests on stage
+Tip: if people are clearly posing and looking at the camera, choose photo_op (or group for the big all-guest photo) rather than couple/family/guests.
 guests = guests themselves, selfies, friends, people at tables
 party = food and dishes, banquet tables, buffet
 decor = flowers, bouquets, floral arrangements, table and stage decorations
