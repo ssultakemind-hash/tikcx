@@ -4,6 +4,8 @@ import { phase } from "@/lib/dates";
 import { cleanSource } from "@/lib/sources";
 
 export const maxDuration = 60;
+const PER_DEVICE = 300;
+const PER_WEDDING = 5000;
 
 type FileReq = { name: string; type: string; size: number; hasThumb: boolean };
 
@@ -24,6 +26,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `한 번에 1~${MAX_FILES_PER_BATCH}개까지 올릴 수 있습니다.` }, { status: 400 });
 
   const db = admin();
+  // Limits against misuse: one phone can send up to PER_DEVICE files per wedding,
+  // and a wedding takes up to PER_WEDDING files in total.
+  if (!isPro) {
+    const [{ count: mine }, { count: all }] = await Promise.all([
+      device ? db.from("media").select("id", { count: "exact", head: true }).eq("wedding_id", wedding.id).eq("device_id", device) : Promise.resolve({ count: 0 }),
+      db.from("media").select("id", { count: "exact", head: true }).eq("wedding_id", wedding.id),
+    ]);
+    if ((mine ?? 0) + files.length > PER_DEVICE)
+      return NextResponse.json({ error: `한 사람당 ${PER_DEVICE}개까지 올릴 수 있어요. (지금까지 ${mine ?? 0}개)` }, { status: 429 });
+    if ((all ?? 0) + files.length > PER_WEDDING)
+      return NextResponse.json({ error: "이 예식의 사진이 가득 찼어요. 두 사람에게 알려주세요." }, { status: 429 });
+  }
   // Prepare all files at once (was one by one: 50 photos could take too long).
   const out = await Promise.all(files.map(async (f) => {
     const kind = f.type?.startsWith("video/") ? "video" : f.type?.startsWith("image/") ? "image" : null;

@@ -45,12 +45,21 @@ export type UploadResult = { ok: number; failed: number; photos: number; videos:
 // Remembers, on this phone only, which files this guest uploaded.
 // A random id for this phone, so we can count how many different guests uploaded
 // (names are optional and many people stay "익명 하객").
+let memoryId = "";
+function newId() {
+  try { return crypto.randomUUID(); } catch {
+    return "xxxxxxxx-xxxx-4xxx-8xxx-xxxxxxxxxxxx".replace(/x/g, () => Math.floor(Math.random() * 16).toString(16));
+  }
+}
 export function deviceId(): string {
   try {
     let id = localStorage.getItem("tikcx_device");
-    if (!id) { id = crypto.randomUUID(); localStorage.setItem("tikcx_device", id); }
+    if (!id) { id = newId(); localStorage.setItem("tikcx_device", id); }
     return id;
-  } catch { return ""; }
+  } catch {
+    // Private mode / storage blocked: keep an id for this visit only.
+    return memoryId || (memoryId = newId());
+  }
 }
 
 // Counts this phone's first visit to a wedding page once, remembering where it came from

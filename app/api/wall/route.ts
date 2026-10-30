@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { admin, BUCKET, weddingBySlug } from "@/lib/supabase";
+import { readScenes } from "@/lib/scenesServer";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ export async function GET(req: Request) {
     .eq("wedding_id", wedding.id).eq("uploaded", true).not("thumb_path", "is", null)
     .order("created_at", { ascending: false }).limit(300);
   const list = rows ?? [];
+  const scenes = await readScenes(wedding.id);
   const signed = new Map<string, string>();
   if (list.length) {
     const { data } = await db.storage.from(BUCKET).createSignedUrls(list.map((r) => r.thumb_path as string), 60 * 60);
@@ -23,7 +25,7 @@ export async function GET(req: Request) {
   }
   return NextResponse.json({
     enabled: true,
-    items: list.map((r) => ({ id: r.id, kind: r.kind, from: r.uploader_name, thumb: signed.get(r.thumb_path as string) ?? null }))
+    items: list.map((r) => ({ id: r.id, kind: r.kind, from: r.uploader_name, scene: scenes[r.id] ?? null, thumb: signed.get(r.thumb_path as string) ?? null }))
       .filter((r) => r.thumb),
   });
 }

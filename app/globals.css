@@ -196,4 +196,7 @@ body:has(.live) .foot{display:none}
 
 .scenes{display:flex;flex-direction:column;gap:10px}
 .wrapchips{flex-wrap:wrap;overflow:visible}
+.soon{background:linear-gradient(135deg,color-mix(in srgb,var(--glow-a) 35%,var(--surface)),color-mix(in srgb,var(--glow-b) 35%,var(--surface)))}
+.soon h2{margin:0}
+.soon-head{display:flex;align-items:center;gap:8px}
 .chip small{opacity:.55;font-weight:600;margin-left:2px}

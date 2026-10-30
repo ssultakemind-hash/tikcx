@@ -147,6 +147,7 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
     </>
   );
   const photosBlock = (
+    <>
       <section className="card">
         {data.cover && (
           <div className="hero photo" style={{ backgroundImage: `url("${data.cover}")`, aspectRatio: "16 / 10" }}>
@@ -212,6 +213,12 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
           <p className="muted">하객 업로드 {shortDate(data.phase.uploadUntil)}까지 · 앨범 보관 {shortDate(data.phase.deleteOn)}까지</p>
         )}
       </section>
+      <section className="card soon">
+        <div className="soon-head"><span className="pill">준비 중</span><span className="eyebrow">AI 하이라이트</span></div>
+        <h2>오늘의 장면들이 1분 영상으로</h2>
+        <p className="muted">하객분들이 보내준 사진과 영상 중 가장 좋은 순간만 골라 입장부터 행진까지 한 편의 영상으로 만들어 드릴 예정이에요.</p>
+      </section>
+    </>
   );
 
   return (
