@@ -48,10 +48,11 @@ photo_op = a posed souvenir photo: people deliberately posing and looking at the
 group = the large posed group photo of all guests on stage
 Tip: if people are clearly posing and looking at the camera, choose photo_op (or group for the big all-guest photo) rather than couple/family/guests.
 guests = guests themselves, selfies, friends, people at tables
-party = food and dishes, banquet tables, buffet
+cake = cake cutting, blowing out candles, toasts, surprise events or performances for the couple
+party = the reception / second part (2부): the couple in a second outfit, banquet, food, buffet, after-party
 decor = flowers, bouquets, floral arrangements, table and stage decorations
 venue = the wedding hall, stage, garden or building without people as the subject
-detail = close-ups of objects: rings, shoes, invitations, name cards, cake, gifts
+detail = close-ups of objects and accessories: rings, veil, earrings, hairpiece, shoes, invitations, name cards, gifts
 other = anything else (blurry, accidental, screenshots)
 unsafe = nudity or sexual content, graphic violence or blood, hateful symbols, obscene gestures, or anything clearly inappropriate to show on a screen at a wedding
 Use "unsafe" only when it is clearly inappropriate; a normal wedding photo is never unsafe.
