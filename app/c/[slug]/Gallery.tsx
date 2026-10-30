@@ -81,24 +81,31 @@ export default function Gallery({ slug, k, fromAdmin }: { slug: string; k: strin
   }
 
   // Phone: share sheet so "이미지 저장 / 비디오 저장" puts it straight into Photos.
-  // Computer (or if sharing fails): normal download.
+  // Computer (or a phone without sharing): downloads the file without leaving the album.
   const [busySave, setBusySave] = useState(false);
   async function saveCurrent() {
     if (!cur?.url || busySave) return;
     const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    if (mobile && navigator.canShare) {
-      setBusySave(true);
-      try {
-        const blob = await fetch(cur.url).then((r) => r.blob());
-        const ext = cur.kind === "video" ? (blob.type.includes("quicktime") ? "mov" : "mp4") : (blob.type.includes("png") ? "png" : "jpg");
-        const file = new File([blob], `tikcx-${cur.id.slice(0, 8)}.${ext}`, { type: blob.type });
-        if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); setBusySave(false); return; }
-      } catch (e) {
-        if ((e as Error)?.name === "AbortError") { setBusySave(false); return; }
+    setBusySave(true);
+    try {
+      const blob = await fetch(cur.url).then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.blob(); });
+      const ext = cur.kind === "video" ? (blob.type.includes("quicktime") ? "mov" : "mp4") : (blob.type.includes("png") ? "png" : blob.type.includes("heic") ? "heic" : "jpg");
+      const name = `tikcx-${cur.id.slice(0, 8)}.${ext}`;
+      const file = new File([blob], name, { type: blob.type });
+      if (mobile && navigator.canShare?.({ files: [file] })) {
+        try { await navigator.share({ files: [file] }); return; }
+        catch (e) { if ((e as Error)?.name === "AbortError") return; }
       }
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(href), 60_000);
+    } catch {
+      window.open(withDownload(cur.url), "_blank");
+    } finally {
       setBusySave(false);
     }
-    location.href = withDownload(cur.url);
   }
 
   async function remove() {
