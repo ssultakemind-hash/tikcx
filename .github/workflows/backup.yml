@@ -1,0 +1,42 @@
+# Weekly backup of tikcx's long-term records (no photos, no contacts) into this repository,
+# on a separate "backups" branch. Needs one repository secret: ADMIN_KEY.
+name: weekly-backup
+on:
+  schedule:
+    - cron: "17 19 * * 0"   # every Monday 04:17 KST
+  workflow_dispatch: {}      # also runnable by hand (Actions tab → weekly-backup → Run workflow)
+permissions:
+  contents: write
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secret
+        env: { ADMIN_KEY: "${{ secrets.ADMIN_KEY }}" }
+        run: test -n "$ADMIN_KEY" || (echo "ADMIN_KEY secret is missing" && exit 1)
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Download records
+        env: { ADMIN_KEY: "${{ secrets.ADMIN_KEY }}" }
+        run: |
+          set -e
+          mkdir -p /tmp/out
+          for t in stats corrections; do
+            curl -fsS -H "x-admin-key: $ADMIN_KEY" "https://tikcx.com/api/admin/export?type=$t" -o /tmp/out/$t.json
+            python3 -c "import json,sys; d=json.load(open('/tmp/out/$t.json')); assert isinstance(d.get('rows'), list), d"
+          done
+      - name: Save on the backups branch
+        run: |
+          set -e
+          git config user.name "tikcx backup"
+          git config user.email "backup@tikcx.com"
+          git fetch origin backups || true
+          if git rev-parse --verify origin/backups >/dev/null 2>&1; then git checkout -B backups origin/backups; else git checkout --orphan backups && git rm -rf . >/dev/null; fi
+          day=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          mkdir -p "records/$day"
+          cp /tmp/out/*.json "records/$day/"
+          cp /tmp/out/*.json ./
+          printf "tikcx 기록 백업 (사진·연락처 없음)\n\n- stats.json: 예식 통계 (최신)\n- corrections.json: AI 고친 기록 (최신)\n- records/날짜/: 매주 사본\n" > README.md
+          git add -A
+          git diff --cached --quiet && echo "no change" || git commit -m "backup $day"
+          git push origin backups
