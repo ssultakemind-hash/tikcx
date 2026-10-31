@@ -21,9 +21,16 @@ jobs:
         run: |
           set -e
           mkdir -p /tmp/out
+          KEY="$(printf '%s' "$ADMIN_KEY" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
           for t in stats corrections; do
-            curl -fsS -H "x-admin-key: $ADMIN_KEY" "https://tikcx.com/api/admin/export?type=$t" -o /tmp/out/$t.json
-            python3 -c "import json,sys; d=json.load(open('/tmp/out/$t.json')); assert isinstance(d.get('rows'), list), d"
+            code=$(curl -sS -A "tikcx-backup" -H "x-admin-key: $KEY" "https://tikcx.com/api/admin/export?type=$t" -o /tmp/out/$t.json -w "%{http_code}")
+            echo "$t -> HTTP $code"
+            if [ "$code" != "200" ]; then
+              echo "answer: $(head -c 300 /tmp/out/$t.json)"
+              [ "$code" = "401" ] && echo "관리자 키가 사이트의 ADMIN_KEY와 다릅니다. GitHub Secrets의 ADMIN_KEY를 다시 넣어주세요."
+              exit 1
+            fi
+            python3 -c "import json; d=json.load(open('/tmp/out/$t.json')); assert isinstance(d.get('rows'), list), d; print(len(d['rows']), 'rows')"
           done
       - name: Save on the backups branch
         run: |
